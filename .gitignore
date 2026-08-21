@@ -1,0 +1,70 @@
+# Machine-local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Project-local Python environments
+.venv/
+.venv-h3/
+venv/
+
+# Python generated files
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+
+# Node generated files
+node_modules/
+frontend/node_modules/
+frontend/dist/
+.npm/
+.pnpm-store/
+
+# Project runtime state: keep only its documentation
+/var/*
+!/var/README.md
+
+# Common accidental runtime directories
+/outputs/
+/artifacts/
+/uploads/
+/cache/
+/logs/
+/tmp/
+
+# Databases and logs
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.sqlite3-*
+*.log
+
+# Model weights, checkpoints and inference engines
+/models/
+/checkpoints/
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.onnx
+*.gguf
+*.engine
+
+# Large generated archives and temporary downloads
+*.part
+*.tmp
+*.download
+
+# IDE and OS noise
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
