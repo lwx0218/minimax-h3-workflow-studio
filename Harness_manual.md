@@ -28,10 +28,10 @@ Owner 只需介入：Goal/Spec 或架构变化、Runtime Decision 的控制选�
 
 | Checkpoint | 结果 |
 |---|---|
-| Baseline Reset | 文档、冲突扫描、Review、checkpoint commit |
-| Runtime Decision | 一个可复现的 A5000 ComfyUI H3 runtime；SwarmUI 或 thin Control Plane 决策 |
-| Single-Worker Product | Guided Mode/Advanced Canvas 到单 Worker 的用户闭环 |
-| Multi-Worker MVP | 独立 Runs 并发、五卡 Worker Pool 和最终验收 |
+| R1 — Baseline Reset | 文档、冲突扫描、Review、checkpoint commit |
+| R2 — Runtime Decision | 一个可复现的 A5000 ComfyUI H3 runtime；SwarmUI 或 thin Control Plane 决策 |
+| R3 — Single-Worker Product | Guided Mode/Advanced Canvas 到单 Worker 的用户闭环 |
+| R4 — Multi-Worker MVP | 独立 Runs 并发、五卡 Worker Pool 和最终验收 |
 
 Single-Request Multi-GPU 是 Track X，可选且不阻塞四个 checkpoint。不得恢复旧 R2–R7 或创建字母子阶段。
 

@@ -26,7 +26,7 @@ NORMATIVE = [
 REQUIRED = {
     "CONTEXT.md": ["ComfyUI Foundation", "Replica Execution", "Single-Request Multi-GPU", "Functional MVP"],
     "operations/planning/rebaseline-plan-v1.md": ["Baseline Reset", "Runtime Decision", "Single-Worker Product", "Multi-Worker MVP"],
-    "operations/planning/initialization-plan.md": ["`accepted`", "Runtime Decision", "SUPERSEDED"],
+    "operations/planning/initialization-plan.md": ["`accepted`", "accepted / feasible_with_constraints", "Runtime Decision", "SUPERSEDED"],
     "docs/specs/mvp-v0.md": ["Guided Mode", "Advanced Canvas", "supporting engineering evidence"],
     "docs/architecture/architecture-v0.md": ["authoritative graph", "Replica Execution", "Single-Request Multi-GPU"],
 }
@@ -89,6 +89,9 @@ def main() -> int:
                 fail(f"{relative}: broken repository link {target!r}", failures)
 
     plan = documents.get("operations/planning/rebaseline-plan-v1.md", "")
+    for anchor in ("Plan approval: approved", "Accepted-effective Rounds: R1", "| R1 | R1-baseline-reset |", "| R2 | R2-runtime-decision |", "| R3 | R3-single-worker-product |", "| R4 | R4-multi-worker-mvp |", "## R2 — Runtime Decision"):
+        if anchor not in plan:
+            fail(f"rebaseline plan is missing fixed-handoff anchor {anchor!r}", failures)
     if "R2-R7" not in plan or "Single-Request Multi-GPU" not in plan:
         fail("rebaseline plan is missing legacy disposition or Track X", failures)
     if not ("backend-API generation is supporting evidence only" in plan or "Backend CLI/API probes remain required engineering evidence" in plan):

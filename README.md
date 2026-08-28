@@ -37,10 +37,10 @@ MiniMax H3 Studio 是一个面向单机单用户的本地 H3 音视频生成产�
 
 ## Checkpoints
 
-1. **Baseline Reset** — 文档、冲突扫描、Review 和 checkpoint commit
-2. **Runtime Decision** — 在 A5000 上验证一个可复现的优化 ComfyUI H3 路径，并决定 SwarmUI 或 thin Control Plane
-3. **Single-Worker Product** — Guided Mode/Advanced Canvas 的单 Worker 用户闭环
-4. **Multi-Worker MVP** — 独立 Runs 并发、五卡 Worker Pool 运维和 MVP 验收
+1. **R1 — Baseline Reset** — 文档、冲突扫描、Review 和 checkpoint commit
+2. **R2 — Runtime Decision** — 在 A5000 上验证一个可复现的优化 ComfyUI H3 路径，并决定 SwarmUI 或 thin Control Plane
+3. **R3 — Single-Worker Product** — Guided Mode/Advanced Canvas 的单 Worker 用户闭环
+4. **R4 — Multi-Worker MVP** — 独立 Runs 并发、五卡 Worker Pool 运维和 MVP 验收
 
 Single-Request Multi-GPU 属于可选 Track X，不是第五个 checkpoint，也不能阻塞上述路线。详见 [`operations/planning/rebaseline-plan-v1.md`](operations/planning/rebaseline-plan-v1.md)。
 

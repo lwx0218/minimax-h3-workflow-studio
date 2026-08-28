@@ -102,7 +102,7 @@ def verify_static(errors: list[str]) -> None:
     plan = (ROOT / "operations/planning/initialization-plan.md").read_text(encoding="utf-8")
     report = (ROOT / "operations/reviews/2026-08-21-r1-feasibility-report.md").read_text(encoding="utf-8")
     work_log = (ROOT / "operations/work_logs/2026-08-21-r1-h3-feasibility.md").read_text(encoding="utf-8")
-    require("Historical R1 is `accepted / feasible_with_constraints`" in plan, "rebaseline ledger lacks historical R1 disposition", errors)
+    require("accepted / feasible_with_constraints" in plan and "R1 Baseline Reset" in plan, "rebaseline ledger lacks historical R1 disposition", errors)
     require("Round Status：`blocked`" in report, "feasibility report lacks blocked round status", errors)
     require("Feasibility Decision：`feasible_with_constraints`" in report, "feasibility report lacks successful constrained decision", errors)
     require("Status：`blocked`" in work_log, "work log lacks blocked status", errors)

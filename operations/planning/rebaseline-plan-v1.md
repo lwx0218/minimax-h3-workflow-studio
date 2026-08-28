@@ -1,8 +1,13 @@
 # MiniMax H3 Studio Rebaseline Plan v1
 
+Plan approval: approved
+Git baseline: b532a55f4549a2177ecd95237a4f3510cfb0aec5
+Accepted-effective Rounds: R1
+
 ## Control Header
 
-- Status: `owner-approved candidate`
+- Status: `approved`
+- Active Round: `R2` — Runtime Decision
 - Owner decision date: 2026-08-28
 - Repository: `lwx0218/minimax-h3-workflow-studio`
 - Audited Git HEAD: `b532a55f4549a2177ecd95237a4f3510cfb0aec5`
@@ -104,14 +109,14 @@ Provisional Multi-Worker MVP targets for a five-second output are Draft ≤5 min
 
 ## 7. Delivery Checkpoints
 
-The new plan uses four product checkpoints because each one closes a real uncertainty or produces a usable vertical slice. They are not aliases for the former R1-R7 sequence.
+The new plan uses four numbered named checkpoints. They are the only acceptance-bearing delivery units and are not aliases for the former R1-R7 sequence.
 
-| Checkpoint | Decision or product outcome | Initial status | Acceptance evidence |
-|---|---|---|---|
-| Baseline Reset | Repository instructions agree on the ComfyUI-first architecture | `next` | docs, conflict scan, review, checkpoint commit |
-| Runtime Decision | One reproducible optimized H3 route works on A5000 and the controller direction is decided | `queued` | valid cold/warm media probe; pinned stack; SwarmUI disposition |
-| Single-Worker Product | One user can author and run T2VA/FL2VA through Guided Mode or Advanced Canvas | `queued` | controlled Distribution; valid workflows; traceable Runs and Artifacts |
-| Multi-Worker MVP | Independent Runs use multiple A5000 Workers safely and the product meets MVP acceptance | `queued` | two concurrent valid Runs; five-GPU pool readiness; recovery/profile/packaging evidence |
+| Round | Primary implementation session | Independently reviewable delivery boundary | Acceptance evidence | Status |
+|---|---|---|---|---|
+| R1 | R1-baseline-reset | Repository instructions agree on the ComfyUI-first architecture | docs; conflict scan; review; checkpoint commit | accepted |
+| R2 | R2-runtime-decision | One reproducible optimized H3 route works on A5000 and the controller direction is decided | valid cold/warm media probe; pinned stack; SwarmUI disposition | pending |
+| R3 | R3-single-worker-product | One user can author and run T2VA/FL2VA through Guided Mode or Advanced Canvas | controlled Distribution; valid workflows; traceable Runs and Artifacts | pending |
+| R4 | R4-multi-worker-mvp | Independent Runs use multiple A5000 Workers safely and the product meets MVP acceptance | two concurrent valid Runs; five-GPU pool readiness; recovery/profile/packaging evidence | pending |
 
 Historical R1 is closed during Baseline Reset as `accepted / feasible_with_constraints`; it is evidence disposition, not an additional future checkpoint.
 
@@ -121,7 +126,23 @@ No implementation checkpoint begins until Baseline Reset is committed and its po
 
 ## 8. Checkpoint Contracts
 
-### Baseline Reset
+## R1 — Baseline Reset
+
+- Handoff contracts: `CONTEXT.md`; `docs/adr/0001-use-comfyui-as-studio-foundation.md`; `operations/planning/rebaseline-plan-v1.md`; `operations/planning/orchestration-v1.md`; `operations/planning/initialization-plan.md`
+- Latest work log: `operations/work_logs/2026-08-28-baseline-reset.md`
+- Latest review: `operations/reviews/2026-08-28-baseline-reset-review.md`
+- Review work log: `operations/work_logs/2026-08-28-baseline-reset.md`
+- Non-goals: ComfyUI installation; weight download; GPU experiment; product implementation; old R2-R7 continuation
+- Dependencies / Definition of Ready: Owner-approved ComfyUI-first decision; audited baseline HEAD; package files available; historical R1 evidence retained
+- Expected change surfaces: source-of-truth Markdown; checkpoint Ledger; documentation verifier; review and work log
+- Exact validation strategy: documentation link and consistency verifier; retained R1 verifier; diff whitespace check; independent read-only documentation review; staged candidate boundary check
+- Independent Review mode: spawned_pi_process
+- Round review: `operations/reviews/2026-08-28-baseline-reset-review.md`
+- Final integrated review: `operations/reviews/2026-08-28-r1-final-integrated-review.md`
+- Acceptance evidence: docs; conflict scan; review; checkpoint commit
+- Exact next gate: R2 — Runtime Decision
+- Blockers / assumptions: historical R1 result is preserved as evidence; no product implementation is authorized in R1
+- Blocked / rebaseline conditions: Owner changes ComfyUI foundation; preservation of historical evidence becomes impossible; commit or post-commit verification fails
 
 Scope:
 
@@ -159,7 +180,23 @@ R1 is not rerun. Its accepted conclusion is:
 - Single-Request Multi-GPU on this host remains unproven and moves to optional Track X;
 - the current host has five A5000 cards, no active NVLink topology, unusable default NCCL P2P under the tested lock, and a 251 GiB RAM constraint.
 
-### Runtime Decision
+## R2 — Runtime Decision
+
+- Handoff contracts: `CONTEXT.md`; `docs/adr/0001-use-comfyui-as-studio-foundation.md`; `operations/planning/rebaseline-plan-v1.md`; `operations/planning/orchestration-v1.md`; `operations/planning/initialization-plan.md`; `docs/specs/mvp-v0.md`; `docs/architecture/architecture-v0.md`; `Harness_manual.md`
+- Latest work log: `operations/work_logs/2026-08-28-baseline-reset.md`
+- Latest review: `operations/reviews/2026-08-28-baseline-reset-review.md`
+- Review work log: `operations/work_logs/2026-08-28-baseline-reset.md`
+- Non-goals: Guided Mode implementation; Control Plane implementation; Multi-Worker product code; Single-Request Multi-GPU; broad sampler or quantization matrix
+- Dependencies / Definition of Ready: R1 Baseline Reset accepted; target A5000 host available; model asset identity recorded; bounded disk/RAM/VRAM limits defined; no unapproved system changes
+- Expected change surfaces: runtime manifests; project-local launch/configuration docs; runtime evidence; controller spike disposition; Runtime Decision work log and review
+- Exact validation strategy: target-host DoR; one cold and one warm ComfyUI H3 probe; media ffprobe/decode/content checks; resource and process cleanup checks; SwarmUI bounded controller spike; documentation and Git boundary checks
+- Independent Review mode: spawned_pi_process
+- Round review: `operations/reviews/2026-08-28-r2-runtime-decision-review.md`
+- Final integrated review: `operations/reviews/2026-08-28-r2-final-integrated-review.md`
+- Acceptance evidence: valid cold/warm media probe; pinned stack; SwarmUI disposition
+- Exact next gate: R3 — Single-Worker Product
+- Blockers / assumptions: one primary stack plus at most one correction; fallback requires bounded disposition; target-host evidence outranks community claims
+- Blocked / rebaseline conditions: two bounded runtime candidates fail; safety limits cannot be enforced; required model assets exceed budget; Owner architecture or hardware decision is required
 
 Purpose: select the product runtime before packaging it.
 
@@ -196,7 +233,23 @@ Acceptance:
 - controller route decided as `adopt_swarmui` or `build_thin_control_plane`;
 - quality/content validation prevents black/noise media from passing.
 
-### Single-Worker Product
+## R3 — Single-Worker Product
+
+- Handoff contracts: `CONTEXT.md`; `docs/adr/0001-use-comfyui-as-studio-foundation.md`; `operations/planning/rebaseline-plan-v1.md`; `operations/planning/orchestration-v1.md`; `docs/specs/mvp-v0.md`; `docs/architecture/architecture-v0.md`
+- Latest work log: `none`
+- Latest review: `none`
+- Review work log: `operations/work_logs/`
+- Non-goals: custom canvas; independent graph runtime; arbitrary third-party nodes; multi-worker scheduling; Track X
+- Dependencies / Definition of Ready: R2 accepted; pinned runtime decision; approved asset manifest; clean-session start path; mock/no-GPU validation boundary
+- Expected change surfaces: controlled Distribution; native workflow templates; Guided Mode; Advanced Canvas settings/extensions; Run and Artifact traceability
+- Exact validation strategy: clean start; configuration/schema checks; native workflow load; frontend submission/progress/media retrieval; T2VA and FL2VA end-to-end evidence; Git/portability checks
+- Independent Review mode: spawned_pi_process
+- Round review: `operations/reviews/r3-single-worker-product-review.md`
+- Final integrated review: `operations/reviews/2026-08-28-r3-final-integrated-review.md`
+- Acceptance evidence: controlled Distribution; valid workflows; traceable Runs and Artifacts
+- Exact next gate: R4 — Multi-Worker MVP
+- Blockers / assumptions: ComfyUI remains pinned and authoritative; only supported extension/configuration mechanisms are used
+- Blocked / rebaseline conditions: runtime route is invalid; clean product session cannot start; required product path needs an architecture change
 
 This checkpoint combines Distribution bootstrap and the first product vertical slice because neither is independently valuable to the user.
 
@@ -223,7 +276,23 @@ Do not fork the frontend. Use workflow templates, App Mode, settings, and suppor
 
 Acceptance requires a clean session to prepare and start the controlled Distribution, then submit and complete both valid workflows from Guided Mode or Advanced Canvas. The user must see progress/status and be able to preview or retrieve the resulting video with stereo audio. Direct CLI or backend-API generation is supporting evidence only.
 
-### Multi-Worker MVP
+## R4 — Multi-Worker MVP
+
+- Handoff contracts: `CONTEXT.md`; `docs/adr/0001-use-comfyui-as-studio-foundation.md`; `operations/planning/rebaseline-plan-v1.md`; `operations/planning/orchestration-v1.md`; `docs/specs/mvp-v0.md`; `docs/architecture/architecture-v0.md`
+- Latest work log: `none`
+- Latest review: `none`
+- Review work log: `operations/work_logs/`
+- Non-goals: Single-Request Multi-GPU as an MVP gate; public deployment; arbitrary nodes; frontend fork
+- Dependencies / Definition of Ready: R3 accepted; two isolated Worker identities; measured host-RAM concurrency limit; recovery and artifact namespace design
+- Expected change surfaces: Worker lifecycle; Control Plane or accepted SwarmUI route; Run scheduling/status; Artifact correlation; recovery/operations docs; final acceptance report
+- Exact validation strategy: two concurrent frontend-submitted independent Runs; five-Worker discovery and queued work; progress/artifact correlation; failure/cancel/restart cleanup; profile matrix; security/license/packaging regression
+- Independent Review mode: spawned_pi_process
+- Round review: `operations/reviews/r4-multi-worker-mvp-review.md`
+- Final integrated review: `operations/reviews/2026-08-28-r4-final-integrated-review.md`
+- Acceptance evidence: two concurrent valid Runs; five-GPU pool readiness; recovery/profile/packaging evidence
+- Exact next gate: Final Owner acceptance after final-integrated review
+- Blockers / assumptions: concurrency is bounded by measured host RAM; Replica Execution and Single-Request Multi-GPU use separate evidence
+- Blocked / rebaseline conditions: safe concurrency cannot be established; two independent Runs cannot complete; distribution/license boundary changes
 
 Work package A — Replica Execution:
 
