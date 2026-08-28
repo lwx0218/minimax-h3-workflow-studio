@@ -21,7 +21,7 @@ Phase 3 是 MVP 后 backlog，不参与当前项目收线。
 | Round | Delivery | Status | Acceptance Evidence |
 |---|---|---|---|
 | Phase 0 | Intake、Spec、Architecture、Master Plan、驾驭手册、质量合同、Git baseline | `accepted` | final review pass；本状态随 baseline commit 生效 |
-| R1 | H3 本地真实 T2VA 可行性 | `pending` | feasibility report + media probe metadata |
+| R1 | H3 本地真实 T2VA 可行性 | `blocked` | C3 valid / `feasible_with_constraints`；4-GPU TP4 host staging blocked，Owner route decision required |
 | R2 | Workflow/Node contracts 与 DAG 校验 | `pending` | schema/tests/review |
 | R3 | SQLite、FIFO Queue、Executor、Artifact Store、Mock API | `pending` | integration tests/review |
 | R4 | 基础画布与 Mock 端到端 | `pending` | frontend build + E2E/review |
@@ -65,6 +65,9 @@ Phase 1 只包含 R1–R4，不再使用 A/B/C 子阶段命名。
 - 严格按照 `operations/planning/r1-h3-feasibility-matrix.md` 执行有限实验矩阵
 - 提交真实 T2VA，检查 MP4 视频流和音频流
 - 记录显存、主存、启动参数和耗时
+- 执行 Owner-authorized corrected single-card C3 exception
+- C3 valid 后执行合法 4-GPU topology 的 bounded rate/resource/quality comparison
+- 评估 pinned external references，但不以社区 claim 替代本机 acceptance evidence
 
 #### Stop Decision
 
@@ -151,7 +154,8 @@ Phase 2 只包含 R5–R7。
 - T2VA/FL2VA golden matrix
 - 安全和路径检查
 - Git ignore/portability 检查
-- 性能基线和已知限制
+- 性能基线和已知限制：cold load、first/warm output、throughput、GPU/host peaks 分开记录
+- quality profiles 必须区分 baseline/quantized/draft/final；任何 sampler/attention/Turbo/cache 优化保留 baseline comparator
 - 全仓 independent review
 - MVP acceptance report
 - Owner 最终体验确认
@@ -193,4 +197,4 @@ DoR -> Implement -> Automated Verify -> Independent Review
 
 ## Next Control Gate
 
-Phase 0 baseline review 与 commit 完成后，新建干净 session 进入 R1。R1 开始重型依赖安装前，再检查 Definition of Ready 和实验矩阵。
+C3 已 valid；4-GPU TP4 kitchen_int8 因 host staging 越线，quantized AdaLN correction 又被 installed source fail-fast 拒绝。当前为技术路线 control gate：Owner 在 unquantized AdaLN-online SGLang、ComfyUI/DiffSynth fallback、defer to R7 或增加 host RAM 中选择。R1 acceptance 前不得进入 R2。

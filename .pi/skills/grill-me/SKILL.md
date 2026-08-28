@@ -1,41 +1,48 @@
 ---
 name: grill-me
-description: Interview the user relentlessly to sharpen a plan or design before building. Invoke when the request is still fuzzy, there is no stable repo/doc baseline yet, or the user asks to be grilled.
+description: Sharpen a fuzzy plan or design when no stable repository/document baseline exists. Use for bounded blocking-decision interviews before implementation, especially when the user asks to be grilled.
 ---
 
 # Grill Me
 
-Interview me relentlessly about every aspect of this plan until we reach a shared understanding.
+Use when the request is still fuzzy and no stable Plan/spec/evidence baseline exists. Do not use when repository documents already provide the decisions; use `grill-with-docs` instead.
 
-Walk down each branch of the design tree, resolving dependencies between decisions one by one. For each question, provide your recommended answer.
+## Interview Contract
 
-Ask the questions one at a time.
+- default maximum 3 discovery rounds
+- group 3–5 related blocking decisions per round
+- target maximum 12–15 blocking decisions total
+- provide a recommended default for every decision
+- allow `accept recommended defaults`; this resolves discovery decisions but never approves a durable Plan
+- ask only when the answer changes scope/acceptance, architecture/data ownership, or a hard-to-reverse/high-risk choice
+- infer anything available from the repository rather than asking
+- assume or defer non-blocking detail
+- if blockers remain at budget exhaustion, ask for explicit Owner opt-in to `deep-discovery`; otherwise stop
 
-If a question can be answered by exploring the repo, explore the repo instead.
+End each response with:
 
-## Use This When
-
-- the user has an idea but the boundary is still fuzzy
-- there is not yet a stable plan, spec, or project-local evidence trail to anchor against
-- you need to pressure-test assumptions before deciding whether to stay simple or upgrade workflow
-- the user explicitly asks to be grilled
+- Resolved
+- Assumed
+- Blocking
+- Deferred
+- Question budget remaining
 
 ## Desired Outcome
 
-By the end of the session, the user and the agent should share a working understanding of:
+- settled goal and source of truth
+- blocking scope/architecture/acceptance decisions resolved
+- explicit assumptions and backlog
+- recommended route: `direct-execute`, `plan`, `spec-then-plan`, `review-only`, or `needs-extension`
+- clear validation and next human control gate
 
-- the goal
-- the source of truth
-- the main constraints
-- the risky or ambiguous branches
-- the likely route:
-  - stay simple
-  - create a plan
-  - create a spec first
-  - stop at a capability boundary
+## Greenfield No-Write Boundary
+
+If this runs inside `00-orchestration` before Plan approval, keep all candidate decisions and Plan Preview in chat. Do not modify code/config or create Plan, `CONTEXT.md`, ADR, work log, or other project artifacts.
 
 ## Boundaries
 
-- Do not turn this into an implementation session.
-- Do not ask multi-question walls; keep it one question at a time.
-- Do not create durable evidence by default unless the route clearly upgrades into `Plan` or another recorded workflow.
+- do not interrogate every branch merely because it exists
+- do not ask one endless question at a time
+- do not implement during grilling
+- do not write durable evidence before the applicable confirmation gate
+- do not force domain modeling, subagents, MCP, or packages without a real trigger

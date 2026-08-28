@@ -1,60 +1,64 @@
 ---
 name: grill-with-docs
-description: Stress-test a plan or design against the repo's current contract and evidence. Invoke when a repo already exists and the agent should grill against AGENTS, intake, plans, work logs, or related docs.
+description: Stress-test a plan or design against a substantive repository decision baseline or explicit contract conflict using a bounded interview. Use when approved plans/specs/architecture/domain evidence exists; do not use merely because bootstrap AGENTS/intake scaffold exists.
 ---
 
 # Grill With Docs
 
-Interview me relentlessly about every aspect of this plan until we reach a shared understanding.
+Use only when the repository has a substantive decision baseline—such as an approved Plan, Spec, architecture/domain record, implementation evidence, or an explicit conflict with current contracts. Bootstrap-only `AGENTS.md`, README, intake, and empty operations directories do not qualify; for a fuzzy greenfield request with only scaffold, use `grill-me`.
 
-Walk down each branch of the design tree, resolving dependencies between decisions one by one. For each question, provide your recommended answer.
+Anchor the interview against that substantive baseline before asking the Owner.
 
-Ask the questions one at a time.
-
-If a question can be answered by exploring the repo, explore the repo instead.
-
-## Domain Awareness
-
-When you explore the repo, anchor the grilling against the current project-local baseline:
+## Read Order
 
 1. `AGENTS.md`
-2. `docs/project-intake/`
-3. `operations/planning/`
-4. `operations/work_logs/`
-5. `operations/reviews/`
-6. `.pi/prompt-templates/`
-7. any existing specs, plans, or contract docs relevant to the request
+2. `Harness_manual.md`
+3. `docs/project-intake/`
+4. `operations/planning/`
+5. `operations/work_logs/`
+6. `operations/reviews/`
+7. `.pi/prompt-templates/`
+8. relevant specs, architecture, `CONTEXT.md`, or ADRs
 
-## Use This When
+## Interview Contract
 
-- the user already has a repo, plan, design, or contract draft
-- the route decision should be pressure-tested against existing project language
-- implementation would be expensive to undo if the framing is wrong
-- a request touches contract, bootstrap, portability, workflow, or evidence expectations
+- default maximum 3 discovery rounds
+- group 3–5 related blocking decisions per round
+- target maximum 12–15 blocking decisions total
+- every decision includes a recommended default grounded in repository evidence
+- allow `accept recommended defaults`; this resolves discovery decisions but never approves a durable Plan
+- do not ask what the repository already answers
+- ask only if the answer changes scope/acceptance, architecture/data ownership, or a hard-to-reverse/high-risk choice
+- put non-blocking uncertainty in assumptions/backlog
+- require explicit Owner opt-in before `deep-discovery`
 
-## During The Session
+End every response with Resolved, Assumed, Blocking, Deferred, and Question budget remaining.
 
-- Call out conflicts between the current proposal and the repo's documented contract.
-- Sharpen vague language into terms the repo can actually use.
-- Check whether existing intake, plans, or work logs already answer a question before asking the user.
-- Suggest whether a decision belongs only in the conversation, in a refreshed plan, or in another durable artifact.
+Stop when blocking scope, architecture, and acceptance decisions are resolved; non-blocking uncertainty is explicit; and validation/control gates are clear.
+
+## During The Interview
+
+- quote conflicts between the proposal and current contract/evidence
+- sharpen vague language into terms the repository can use
+- distinguish chat-only assumptions from Plan/Spec/domain records
+- invoke optional `domain-modeling` only when terminology/ownership/state/context ambiguity is material
+
+## Greenfield No-Write Boundary
+
+Before Owner Plan approval, repository exploration and chat Plan Preview are allowed, but project writes are not. Keep temporary domain language and scenarios in chat. Do not create/update Plan, intake, `CONTEXT.md`, ADR, work log, code, or config.
 
 ## Output
 
-Finish with:
-
-1. the clarified understanding
-2. the documented facts you anchored against
-3. the recommended next route:
-   - `direct-execute`
-   - `plan`
-   - `spec-then-plan`
-   - `review-only`
-   - `needs-extension`
-4. which project-local docs should be refreshed, if any
+1. clarified understanding
+2. documented facts and conflicts
+3. resolved/assumed/blocking/deferred summary
+4. recommended route
+5. evidence to refresh after the applicable approval gate
+6. remaining question budget
 
 ## Boundaries
 
-- Do not assume every grilling session must write new files.
-- Do not create heavyweight docs if the request can remain on the simple path.
-- Do not recommend subagents, MCP, or packages unless the current repo evidence shows a real boundary or capability gap.
+- no unbounded relentless questioning
+- no implementation during grilling
+- no durable writes before confirmation
+- no heavyweight capability recommendation without evidence of a real gap

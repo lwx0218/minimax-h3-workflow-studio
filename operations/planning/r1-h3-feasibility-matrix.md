@@ -143,3 +143,22 @@ Blocked 后停止 R1，由 Owner 在 SGLang 调整、ComfyUI backend、在线 AP
 - decision
 
 R1 review 必须核对 attempt 总数和 Stop Decision，确认没有超出矩阵。
+
+## Owner-Authorized Change Control：2026-08-21
+
+原矩阵已 bounded `blocked` 后，Owner 明确授权重新打开 R1：
+
+1. **一次 corrected single-card C3 exception**
+   - 与 C2 使用相同 lock 2、official `kitchen_int8`、FlashAttention、固定 768p/5s/50-step probe
+   - 唯一 operational corrections：project-local ffmpeg/ffprobe 进入 exact server `PATH`；server output 固定在 `var/outputs/r1-feasibility/`
+   - generation 前必须修复 final review 两个 P2 hardening findings 并通过自动验证
+   - 这是明确记录的第三个 Profile C slot，不回写成原矩阵内 attempt
+2. **C3 valid 后执行 bounded 4-GPU performance/quality follow-up**
+   - 只使用现有 5 张 A5000 中的 4 张；H3 的 56 heads/64 partitions 不允许 5-way topology
+   - 先做 lock-2 NCCL/topology smoke，再允许 model load/generation
+   - baseline topology 从合法的 `TP4 × Ulysses1` 开始；是否增加 `TP2 × Ulysses2` 取决于 host-memory 预算和第一组证据
+   - 保持同模型、prompt、seed、768p、5s 与非近似 50-step baseline，先比较 output rate/resource/quality；不得通过降分辨率、Turbo LoRA 或 cache 伪造 4-GPU improvement
+   - 每个 topology 最多一个 configuration correction；任何 host used 达 230 GiB early-abort threshold 时立即停止
+   - first-output rate 固定定义为 `media duration seconds / submit-to-terminal wall seconds`；同时单独报告 service load。G4/C3 speedup 使用相同 probe 的 generation elapsed ratio，只能标记为 cold single-probe comparison，不得宣称 warm throughput、稳定性或 sustained scaling
+
+External references 的评估位于 `operations/planning/r1-external-reference-assessment.md`。它们提供 fallback/优化设计，不自动授权第三组 dependency lock、新权重或 ComfyUI/DiffSynth backend execution。

@@ -1,58 +1,66 @@
 ---
 name: grilling
-description: Stress-test a plan or design one decision at a time, then recommend the right route. Invoke when the next step is unclear or the agent must decide whether to stay simple or upgrade workflow.
+description: Decide the correct workflow route through a bounded blocking-decision interview. Use when it is unclear whether to direct-execute, Plan, Spec then Plan, review-only, or stop at Needs-extension.
 ---
 
 # Grilling
 
-Interview the user relentlessly about every aspect of this request until you reach a shared understanding.
+Use this skill to settle the route, not to interrogate every design branch.
 
-Walk down each branch of the decision tree, resolving dependencies between decisions one by one. For each question, provide your recommended answer.
+## Route Outcomes
 
-Ask the questions one at a time.
+- `direct-execute`
+- `plan`
+- `spec-then-plan`
+- `review-only`
+- `needs-extension`
 
-If a question can be answered by exploring the repo, explore the repo instead.
+## Interview Contract
 
-## Purpose
+- default maximum 3 discovery rounds
+- 3–5 related blocking decisions per round
+- target maximum 12–15 blocking decisions total
+- recommended default for every decision
+- allow `accept recommended defaults`; this resolves discovery decisions but never approves a durable Plan
+- infer repository facts rather than asking
+- ask only when the answer changes scope/acceptance, architecture/data ownership, or a hard-to-reverse/high-risk choice
+- assume or defer non-blocking details
+- budget exhaustion with blockers requires explicit Owner choice: enter `deep-discovery` or stop/mark blocked
 
-Use this skill to decide whether the request should:
+End every response with:
 
-- stay on the native `Pi` simple path
-- enter `Plan`
-- enter `Spec` then `Plan`
-- request a review-only pass
-- stop at `Needs-extension`
-
-This skill is a routing aid. It does not make `Plan`, subagent work, MCP use, or package installation the default.
-
-## Output
-
-When the grilling is done, summarize:
-
-1. the settled goal
-2. the key decisions and unresolved edges
-3. the recommended route:
-   - `direct-execute`
-   - `plan`
-   - `spec-then-plan`
-   - `review-only`
-   - `needs-extension`
-4. whether there is a capability gap:
-   - skill
-   - MCP
-   - package / extension
-   - specialist review
+- Resolved
+- Assumed
+- Blocking
+- Deferred
+- Question budget remaining
 
 ## Routing Heuristics
 
-- Prefer `direct-execute` when the task is bounded, low-risk, and can be settled in conversation plus one discovery round.
-- Prefer `plan` when the task is cross-file, contract-sensitive, portability-sensitive, or needs explicit verification.
-- Prefer `spec-then-plan` when the goal is clear but the requirement boundary is still unstable.
-- Prefer `review-only` when the user wants findings before implementation.
-- Prefer `needs-extension` when the task depends on browser automation, external systems, missing packages, MCP tools, or specialist capability that the current starter does not already provide.
+- `direct-execute`: approved baseline, bounded low-risk request, clear validation
+- `plan`: cross-file, contract, portability, handoff, or explicit verification needs
+- `spec-then-plan`: requirement boundary remains unstable
+- `review-only`: findings requested before implementation
+- `needs-extension`: browser/external system/missing package/specialist capability is genuinely required
+
+Stop when blockers in scope, architecture, and acceptance are resolved and all other uncertainty is assumed/deferred.
+
+## Greenfield No-Write Boundary
+
+In `00-orchestration` before Plan approval, return route and Plan Preview in chat only. Do not edit code/config or create Plan, domain records, work log, or review artifacts.
+
+## Output
+
+1. settled goal
+2. key decisions and unresolved blockers
+3. resolved/assumed/deferred items
+4. selected route and why
+5. capability gap, if real
+6. next human control gate and remaining budget
 
 ## Boundaries
 
-- Do not jump into implementation before the route is clear.
-- Do not create a long plan if the request can remain on the simple path.
-- Do not recommend subagents or MCP by default; recommend them only when the dependency is real.
+- no unbounded one-question-at-a-time loop
+- no implementation before route/approval is clear
+- no automatic deep-discovery
+- no default subagent/MCP/package recommendation

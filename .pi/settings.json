@@ -4,5 +4,9 @@
   "instructions_file": "AGENTS.md",
   "agents_doc": ".pi/agents/README.md",
   "skills_dir": ".pi/skills",
-  "prompt_templates_dir": ".pi/prompt-templates"
+  "prompt_templates_dir": ".pi/prompt-templates",
+  "prompts": [
+    "prompt-templates"
+  ],
+  "enableSkillCommands": true
 }

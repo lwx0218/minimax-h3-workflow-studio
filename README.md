@@ -4,13 +4,13 @@
 
 ## 当前状态
 
-项目处于 **Phase 0：需求澄清与目录约定**。
-
-目前已建立治理、MVP 规格、架构和初始化计划，尚未创建大规模业务代码，也尚未完成本地 H3 推理验证。
+Phase 0 治理基线已 accepted。R1 单卡 C3 已 valid，feasibility 为 `feasible_with_constraints`；4-GPU TP4 路线受 host staging/quantized AdaLN incompatibility 阻塞，R1 当前为 **blocked** control gate。
 
 - PI/governance：`runtime-ready`
 - 应用：`bootstrap-ready`
-- H3 inference：待 Phase 1 技术验证
+- H3 inference：单卡 official INT8 已完成有效 1344×768 T2VA（视频+立体声音频）；4-GPU 路线等待 Owner 选择 unquantized SGLang、fallback backend、延后或增加主存
+- R1 evidence：[`operations/reviews/2026-08-21-r1-feasibility-report.md`](operations/reviews/2026-08-21-r1-feasibility-report.md)
+- External reference assessment：[`operations/planning/r1-external-reference-assessment.md`](operations/planning/r1-external-reference-assessment.md)
 
 ## MVP
 
@@ -80,7 +80,7 @@ var/
 - Phase 2（R5–R7）：真实 T2VA、FL2VA、hardening 与 MVP 验收
 - Phase 3：MVP 后 backlog，不参与当前收线
 
-Review 和 Bug Fix 保留在原 round 内，不新增 R1B、R1C 等子阶段。下一步不是先开发完整 UI，而是完成 R1 本地真实 T2VA 可行性验证。
+Review 和 Bug Fix 保留在原 round 内，不新增 R1B、R1C 等子阶段。当前不得进入 R2 或先开发 UI；下一步是 4-GPU 技术路线 Owner control decision。
 
 ## 许可证说明
 
