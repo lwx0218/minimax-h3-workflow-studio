@@ -1,4 +1,4 @@
-# R1 MiniMax-H3 本地 T2VA 可行性报告
+> **Historical-only notice (2026-08-21):** This report preserves the execution-time R1 `blocked` control gate and its evidence. That historical gate is superseded by the ComfyUI-first Baseline Reset; current status is recorded in [`operations/planning/rebaseline-plan-v1.md`](../planning/rebaseline-plan-v1.md). Do not use the old Owner-option/R2 sequencing as a current instruction.\n\n# R1 MiniMax-H3 本地 T2VA 可行性报告
 
 - Date：2026-08-21
 - Round：R1

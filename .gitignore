@@ -58,6 +58,9 @@ frontend/dist/
 *.gguf
 *.engine
 
+# Source package archive supplied for the baseline reset (consumed, not canonical project evidence)
+/docs/minimax-h3-rebaseline-pi-package.zip
+
 # Large generated archives and temporary downloads
 *.part
 *.tmp

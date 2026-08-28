@@ -1,4 +1,4 @@
-# Work Log：R1 H3 本地真实 T2VA 可行性
+> **Historical-only notice (2026-08-21):** This work log preserves the execution-time R1 state and experiment chronology. Its old `blocked` gate and future sequencing are superseded by [`operations/planning/rebaseline-plan-v1.md`](../planning/rebaseline-plan-v1.md); current checkpoint status is in [`operations/planning/initialization-plan.md`](../planning/initialization-plan.md).\n\n# Work Log：R1 H3 本地真实 T2VA 可行性
 
 - Date：2026-08-21
 - Round：R1

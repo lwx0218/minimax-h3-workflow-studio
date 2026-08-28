@@ -1,169 +1,64 @@
-# 项目 Intake：MiniMax H3 Workflow Studio
+# 项目 Intake：MiniMax H3 Studio
 
 ## Metadata
 
-- Project：MiniMax H3 Workflow Studio
+- Project：MiniMax H3 Studio
 - Project slug：`minimax-h3-workflow`
-- Source of truth：本仓库
-- Governance mode：external-first、PI-native、按需进入 Plan
+- Source of truth：本仓库；优先级见 [`CONTEXT.md`](../../CONTEXT.md)
+- Governance mode：external-first、PI-native、按 checkpoint 按需治理
 - Project root：`.`
-- Governance entry：`AGENTS.md`、`.pi/`
+- Governance entry：`AGENTS.md`、`Harness_manual.md`、`.pi/`
 - PI readiness：`runtime-ready`
-- Application readiness：`bootstrap-ready`
-- 当前阶段：Phase 0（需求澄清与目录约定）
+- Application readiness：`bootstrap-ready`；产品实现尚未开始
+- 当前状态：Baseline Reset accepted candidate；Runtime Decision next
 - 目标部署地区：中国
-- 首版目标用户：单机、单用户；保留后续产品化边界
+- 目标用户：单机、单用户创作者
 
-## 项目目标
+## 目标
 
-构建一个以 MiniMax-H3 为核心的视频与音频生成工作流编排项目。产品形态参考 ComfyUI 的节点画布、类型化连线、工作流保存和异步执行体验，但采用本项目自己的 workflow contract、节点接口和运行时边界，不 fork ComfyUI，也不承诺兼容其 workflow 或 custom nodes。
+交付一个以 MiniMax-H3 为核心的本地产品：复用 pinned ComfyUI backend/frontend 的 graph、node、queue、执行和进度语义，提供 Guided Mode 与完整 Advanced Canvas，并最终通过隔离 Workers 支持独立 Runs 的并发执行。
 
-第一版 MVP 聚焦：
+## 架构决策
 
-- 本地 MiniMax-H3 推理
-- T2VA 与 FL2VA
-- 基础 DAG 编辑闭环
-- 单用户任务队列
-- 可追踪的运行快照与项目内产物管理
+- ComfyUI 是 Studio foundation 和 workflow/API 语义的权威来源，不是视觉参考或可选 fallback。
+- H3 Workflow 使用原生 ComfyUI workflow/API 格式；不维护独立 WorkflowDocument、Node Registry、ExecutionPlan、DAG Executor、application FIFO queue 或 custom canvas。
+- Guided Mode 是常用产品入口；Advanced Canvas 使用完整 pinned ComfyUI frontend。
+- Control Plane 只发现 Worker、分派 Run、观察进度和记录 Artifact，不重新解释或执行 graph。
+- Replica Execution（多个 Worker 执行独立 Runs）与 Single-Request Multi-GPU（一个请求的 model parallel）严格分开。后者为 Track X，可不阻塞 MVP。
 
-## Source of Truth
+## 现状与约束
 
-按优先级排序：
+- 5 × RTX A5000，约 251 GiB host RAM，无 active NVLink；R1 记录了 P2P/NCCL 与 CPU staging 约束。
+- Historical R1 C3：single-card official `kitchen_int8` T2VA probe 有效，`feasible_with_constraints`；约 30.6 分钟，不是交互产品基线。
+- R1 事实、权重和运行产物保留在 `operations/` 与外部路径；本次不重跑实验。
+- 模型权重位于仓库外，通过 `.env.local` 引用；运行时、缓存、日志、媒体和数据库不入 Git。
+- 本次 Baseline Reset 不安装 ComfyUI、不下载权重、不运行 GPU 实验、不写产品代码。
 
-1. 本仓库中的 intake、MVP spec、架构文档和版本化 contracts
-2. MiniMax-H3 官方仓库、模型卡、官方部署文档与许可证
-3. 实际锁定的 SGLang/H3 运行时版本及其 API 行为
-4. ComfyUI：仅作为产品和架构参考，不作为本项目 contract
+## MVP 边界
 
-已调研的参考基线：
+必须最终支持：
 
-- MiniMax-H3 upstream commit：`d21241f0a4b3acbb34c97dae47fa417b7065e438`
-- ComfyUI upstream commit：`5ab2f7a2d676c1fb7b410c22e82e2ed8f217b56c`
+- Guided Mode 的 H3 输入、提交、进度、预览/取回；
+- Advanced Canvas 中原生 ComfyUI H3 Workflow 的保存、编辑和提交；
+- T2VA 与 FL2VA 的有效带立体声音频视频；
+- 至少两个隔离 Worker 的独立 Run 并发；
+- 五张卡可在测得安全并发上限下参与 queued work；
+- Run、Workflow/API snapshot、profile、model/runtime identity、seed、timing、status、Artifact 的追踪；
+- 默认不执行任意第三方节点或不受信任 workflow 字段。
 
-后续实现不应静默跟随上游变化；升级参考版本时需要记录影响。
-
-## 当前环境基线
-
-- 本地已有约 465G 的 MiniMax-H3 模型快照
-- 5 × NVIDIA RTX A5000，每张约 24 GiB 显存
-- NVIDIA driver：`580.173.02`
-- 系统内存：约 251 GiB
-- GPU 间主要通过 PCIe 通信，当前拓扑未显示 NVLink
-- 当前尚未安装项目专用 SGLang、Diffusers 或 vLLM 环境
-
-A5000 不是当前官方文档明确验证的 H3 拓扑，因此“可发现模型文件”不等于“推理可用”。正式开发 UI 前必须先完成真实 T2VA 推理可行性测试。
-
-## 本地模型使用方式
-
-- 通过本地未提交文件 `.env.local` 中的 `H3_MODEL_PATH` 指向模型快照根目录
-- 快照根目录应包含 repository-level `model_index.json` 以及 `FL2VA/`、`Ref2VA/` 等组件
-- 不在已提交文档、脚本或源码中硬编码宿主机绝对路径
-- 不复制模型到仓库，不提交权重、checkpoint、ONNX、GGUF 或模型缓存
-- H3 推理运行时与轻量 orchestration 后端使用两个独立的项目内虚拟环境
-- 首选将 H3 作为独立 SGLang 服务运行，应用后端通过 adapter 调用
-
-H3 首次接入顺序：
-
-1. 真实本地 T2VA 推理验证
-2. T2VA adapter
-3. 首帧、尾帧和首尾帧 FL2VA
-4. Ref2VA 后置
-
-## H3 能力边界
-
-当前开源权重主要覆盖 H3-Base 768p：
-
-- `t2va`：文本到带音频视频
-- `fl2va`：首帧/尾帧条件到带音频视频
-- `ref2va`：图片、视频、音频参考到带音频视频
-
-H3-Context-IR 与 H3-Regenerate-2K 当前不是本地开源模块。MVP 提供：
-
-- 原始 H3 Prompt 输入
-- 简单本地 Prompt Builder
-
-本地 Builder 不得宣称等价于官方 Context-IR。官方 Context-IR 和 2K API 仅作为后续可选节点，不构成本地 MVP 的强依赖。
-
-## ComfyUI 参考范围
-
-借鉴：
-
-- 节点画布和类型化端口
-- Workflow JSON 保存、加载和分享思路
-- 服务端节点注册、图校验和 DAG 执行
-- 异步队列、进度、取消和产物预览
-
-不照搬：
-
-- 不 fork 或复制 ComfyUI GPL 代码
-- 不使用 ComfyUI 内部 prompt/execution JSON 作为持久 contract
-- 不承载完整 diffusion 模型、采样器和加载器生态
-- MVP 不扫描或执行任意第三方 Python 节点
-- 不承诺 ComfyUI workflow/custom nodes 兼容
-- 不让画布 UI 数据直接决定后端执行语义
-
-## 约束条件
-
-### 运行与存储
-
-- MVP 为单机、单用户应用
-- Web 服务默认只监听 `127.0.0.1`，通过 SSH 端口转发访问
-- H3 同时只执行一个任务，其余任务按 FIFO 排队
-- Workflow 与运行元数据存 SQLite
-- 上传、输出、缓存、日志和临时文件统一位于项目内 `var/`
-- 大型 JSON 快照和日志按阈值压缩；已压缩媒体不重复压缩
-- 运行快照需记录 workflow、节点版本、参数、最终 prompt、seed、模型标识、后端参数、耗时和错误
-
-### 版本控制与可移植性
-
-- 模型权重和运行产物不得进入 Git
-- `.env.local`、虚拟环境、数据库、缓存和媒体产物不得进入 Git
-- 提交内容优先使用相对路径
-- 不把运行数据写散到系统盘或用户主目录缓存
-- 驱动、CUDA 和现有外部模型目录属于明确例外
-
-### 许可证
-
-当前目标部署地区为中国；按已阅读的 MiniMax H3 Community License 文本，中国不属于 Excluded Territories。正式发布或部署前仍需重新核验最新许可证、Acceptable Use Policy 和适用法律。该记录不构成法律意见。
-
-项目近期不公开发布，暂不添加项目级开源许可证。公开前需进行依赖和许可证审查。
-
-## MVP 不包含
-
-- Ref2VA
-- 官方 Context-IR 或 2K 的强制依赖
-- ComfyUI workflow 兼容
-- 第三方插件安装和插件市场
-- 登录、多用户、多租户或公网部署
-- 子图、循环、条件分支和批处理矩阵
-- 分布式队列或按 GPU 拆分并发任务
-
-## 开发与质量模式
-
-当前 MVP 固定为 R1–R7，详细 Round Ledger 见 `operations/planning/initialization-plan.md`。
-
-每轮由 Builder 执行实现，由自动测试提供机械验证，并在 checkpoint commit 前执行 Independent Review。Bug、Review 和复验保留在原 round；只有 Owner 批准的 Goal/Spec 变化才能重新基线。
-
-Owner 不负责逐项发起 Review 或 Bug Fix，只在技术路线阻塞、范围变化、危险操作和最终体验验收时介入。项目操作、compact 和 session handoff 见 `Harness_manual.md`。
-
-## 主要风险与待验证项
-
-1. 5×A5000 上 H3 的显存、主存和推理速度是否可接受
-2. SGLang 在该拓扑上的最佳 TP/Ulysses/offload 配置
-3. 运行中任务取消的实际后端能力
-4. 本地 Prompt Builder 与官方 Context-IR 的质量差距
-5. MiniMax-H3、SGLang 和 ComfyUI 上游接口仍在快速演进
+不包含：自定义 graph/canvas、平行可执行 workflow contract、任意第三方节点安装、公网多租户、Single-Request Multi-GPU MVP gate。
 
 ## Durable Outputs
 
-- 项目驾驭手册：`Harness_manual.md`
-- MVP spec：`docs/specs/mvp-v0.md`
-- 架构建议：`docs/architecture/architecture-v0.md`
-- 开发质量合同：`docs/development/process.md`
-- Master Plan：`operations/planning/initialization-plan.md`
-- 工作记录：`operations/work_logs/`
+- Source language：[`CONTEXT.md`](../../CONTEXT.md)
+- ADR：[`docs/adr/0001-use-comfyui-as-studio-foundation.md`](../adr/0001-use-comfyui-as-studio-foundation.md)
+- Rebaseline Plan：[`operations/planning/rebaseline-plan-v1.md`](../../operations/planning/rebaseline-plan-v1.md)
+- Orchestration：[`operations/planning/orchestration-v1.md`](../../operations/planning/orchestration-v1.md)
+- MVP spec：[`docs/specs/mvp-v0.md`](../specs/mvp-v0.md)
+- Architecture：[`docs/architecture/architecture-v0.md`](../architecture/architecture-v0.md)
+- Work logs：`operations/work_logs/`
 - Review evidence：`operations/reviews/`
 
-## 下一步
+## Historical disposition
 
-先完成真实本地 T2VA 技术验证，再冻结 workflow v1 和节点执行 contract。不要在推理可行性未知时先大规模开发工作流 UI。
+旧 intake 中将 ComfyUI 定义为参考、要求独立 contract、单并发 FIFO 和 R1–R7 的未来条款已由 [`operations/planning/rebaseline-plan-v1.md`](../../operations/planning/rebaseline-plan-v1.md) **SUPERSEDED**。旧 R1 实验文档仍只作为事实证据读取。

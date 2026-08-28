@@ -1,3 +1,5 @@
+> **SUPERSEDED future-plan notice:** This file is retained as historical R1 execution evidence. Its bounded experiment instructions and blocked decision gate are not the current product route. Future runtime work follows [`rebaseline-plan-v1.md`](rebaseline-plan-v1.md). Do not rerun R1 from this document.
+
 # R1 H3 Local Feasibility Matrix
 
 ## Purpose

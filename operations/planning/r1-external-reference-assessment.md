@@ -1,3 +1,5 @@
+> **SUPERSEDED future-plan notice:** This assessment is retained as historical R1 reference evidence. Its recommendation to preserve an independent `H3Backend`, defer ComfyUI, or gate on 4-GPU SGLang is superseded by [`rebaseline-plan-v1.md`](rebaseline-plan-v1.md). It is not an execution instruction.
+
 # R1 External MiniMax-H3 Reference Assessment
 
 - Date：2026-08-21

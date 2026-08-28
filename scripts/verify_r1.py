@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify the static R1 blocked decision and, optionally, local runtime evidence."""
+"""Verify retained historical R1 evidence and, optionally, local runtime evidence."""
 
 from __future__ import annotations
 
@@ -102,7 +102,7 @@ def verify_static(errors: list[str]) -> None:
     plan = (ROOT / "operations/planning/initialization-plan.md").read_text(encoding="utf-8")
     report = (ROOT / "operations/reviews/2026-08-21-r1-feasibility-report.md").read_text(encoding="utf-8")
     work_log = (ROOT / "operations/work_logs/2026-08-21-r1-h3-feasibility.md").read_text(encoding="utf-8")
-    require("| R1 | H3 本地真实 T2VA 可行性 | `blocked` |" in plan, "R1 ledger is not blocked", errors)
+    require("Historical R1 is `accepted / feasible_with_constraints`" in plan, "rebaseline ledger lacks historical R1 disposition", errors)
     require("Round Status：`blocked`" in report, "feasibility report lacks blocked round status", errors)
     require("Feasibility Decision：`feasible_with_constraints`" in report, "feasibility report lacks successful constrained decision", errors)
     require("Status：`blocked`" in work_log, "work log lacks blocked status", errors)
