@@ -1,0 +1,14 @@
+{
+  "1": {"class_type": "RHMiniMaxH3TextEncoderLoader", "inputs": {"model_root": "MiniMax-H3", "dtype": "auto", "text_encoder_path": "qwen3-vl-32b-int8_convrot.safetensors"}},
+  "2": {"class_type": "RHMiniMaxH3ModelLoader", "inputs": {"partition": "FL2VA", "model_root": "MiniMax-H3", "dtype": "auto", "transformer_path": "MiniMax-H3-FL2VA-int8_convrot.safetensors"}},
+  "3": {"class_type": "RHMiniMaxH3VAELoader", "inputs": {"model_root": "MiniMax-H3", "video_vae_path": "MiniMax-H3-video_vae.safetensors", "audio_vae_path": "MiniMax-H3-audio_vae.safetensors"}},
+  "4": {"class_type": "LoadImage", "inputs": {"image": "h3_studio_fl2va_first_frame.png"}},
+  "5": {"class_type": "RHMiniMaxH3FL2VAFirstFrameCondition", "inputs": {"first_frame": ["4", 0]}},
+  "6": {"class_type": "RHMiniMaxH3FL2VATarget", "inputs": {"keyframes": ["5", 0], "aspect_ratio": "16:9", "duration_seconds": 5.0, "width": 864, "height": 480}},
+  "7": {"class_type": "RHMiniMaxH3FL2VAEncode", "inputs": {"h3_text_encoder": ["1", 0], "h3_vae_bundle": ["3", 0], "target": ["6", 0], "keyframes": ["5", 0], "prompt": "Continue naturally from the provided keyframe: a slow cinematic camera drift with synchronized ambient sound. Keep the subject identity, lighting and colour grade stable, no subtitles, no logos."}},
+  "8": {"class_type": "RHMiniMaxH3EmptyAVLatent", "inputs": {"target": ["6", 0]}},
+  "9": {"class_type": "RHMiniMaxH3DualSigmaSampler", "inputs": {"h3_model": ["2", 0], "conditioning": ["7", 0], "av_latent": ["8", 0], "seed": 43, "sigma_points": 21, "video_shift": 12.0, "audio_shift": 3.0, "accel": "off", "denoise_video": true, "cache_dit_rdt": 0.12, "cache_dit_mc": 2, "cache_dit_warmup": 4, "velocity_stride": 4, "sampler_mode": "res_multistep", "allow_accel_with_res_multistep": false}},
+  "10": {"class_type": "RHMiniMaxH3DecodeAV", "inputs": {"h3_vae_bundle": ["3", 0], "sampled_av_latent": ["9", 0]}},
+  "11": {"class_type": "CreateVideo", "inputs": {"images": ["10", 0], "audio": ["10", 1], "fps": 24.0, "bit_depth": 8}},
+  "12": {"class_type": "SaveVideo", "inputs": {"video": ["11", 0], "filename_prefix": "h3_studio/template_fl2va", "format": "mp4", "codec": "h264"}}
+}

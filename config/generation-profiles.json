@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "balanced-r2-a5000": {
+      "label": "Balanced — R2 A5000 proven route",
+      "description": "R2 accepted single A5000 ComfyUI/RH MiniMax-H3 route. This is product evidence, not final MVP performance threshold.",
+      "width": 864,
+      "height": 480,
+      "aspect_ratio": "16:9",
+      "duration_seconds": 5.0,
+      "fps": 24,
+      "expected_frame_count": 124,
+      "sigma_points": 21,
+      "sampler_mode": "res_multistep",
+      "video_shift": 12.0,
+      "audio_shift": 3.0,
+      "accel": "off",
+      "cache_dit_rdt": 0.12,
+      "cache_dit_mc": 2,
+      "cache_dit_warmup": 4,
+      "velocity_stride": 4,
+      "allow_accel_with_res_multistep": false,
+      "dtype": "auto",
+      "disclosure": "Uses pruned INT8 ConvRot DiT and quantized Qwen3-VL text encoder; not presented as lossless/reference quality."
+    }
+  },
+  "default_profile": "balanced-r2-a5000"
+}

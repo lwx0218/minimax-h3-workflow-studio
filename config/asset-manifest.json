@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "asset_root_env": "H3_MODEL_ROOT",
+  "default_model_root_name": "MiniMax-H3",
+  "required_assets": [
+    {
+      "role": "dit_fl2va_int8_convrot",
+      "relative_path": "MiniMax-H3-FL2VA-int8_convrot.safetensors",
+      "sha256": "4e464ae3d21ff81ef51efced3420cbf2d6139a5ec1ccc6f9793b43b158ebf738",
+      "safetensors_header": "required",
+      "used_for": ["T2VA", "FL2VA"]
+    },
+    {
+      "role": "qwen3_vl_text_encoder_int8_convrot",
+      "relative_path": "qwen3-vl-32b-int8_convrot.safetensors",
+      "sha256": "e9d0a5cc9df09c99882bf0fffd82a71d16e9247338cc3990f7d332a969c53203",
+      "safetensors_header": "required",
+      "used_for": ["T2VA", "FL2VA"]
+    },
+    {
+      "role": "video_vae",
+      "relative_path": "MiniMax-H3-video_vae.safetensors",
+      "sha256": "aa4a9ffb89cced1fa9f2a8e0dbd72853f8c01e2f08be9c4a0915fc9d1ecabbfa",
+      "safetensors_header": "required",
+      "used_for": ["T2VA", "FL2VA"]
+    },
+    {
+      "role": "audio_vae",
+      "relative_path": "MiniMax-H3-audio_vae.safetensors",
+      "sha256": "37dddc2f3e6d5d5139d823d5ea283bbf304dadcb885b1ccda818aa13dade5ea2",
+      "safetensors_header": "required",
+      "used_for": ["T2VA", "FL2VA"]
+    },
+    {
+      "role": "fl2va_sidecar_tree",
+      "relative_path": "FL2VA",
+      "sha256": "c641032d2ee63183299e97f3ed1664f04fc630f03234cf0af8530a40c7f86144",
+      "safetensors_header": "not_applicable",
+      "used_for": ["T2VA", "FL2VA"],
+      "tree_hash_algorithm": "sha256 over sorted non-safetensors relative path, size and file sha256",
+      "notes": "Approved FL2VA sidecar configs/tokenizer/processor files copied into ignored ComfyUI models/diffusers/MiniMax-H3/FL2VA; large weights remain external symlinks under models/MiniMax-H3."
+    }
+  ]
+}

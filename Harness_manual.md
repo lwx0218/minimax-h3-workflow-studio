@@ -4,8 +4,9 @@
 
 - Baseline Reset：`accepted`；checkpoint commit 与 post-commit verify 已成功
 - Historical R1：`accepted / feasible_with_constraints`
-- 下一 checkpoint：Runtime Decision
-- 产品实现、ComfyUI 安装、权重下载和新的 GPU 实验：尚未开始
+- R2 Runtime Decision：`accepted`；ComfyUI H3 runtime 与 thin Control Plane 方向已确定
+- R3 Single-Worker Product：`accepted`；Guided Mode/Advanced Canvas 单 Worker T2VA+FL2VA 产品切片已验证
+- 下一 checkpoint：R4 — Multi-Worker MVP (`pending`)
 
 ## 新 Session 读取顺序
 
@@ -62,4 +63,4 @@ git status --short --branch
 git log -1 --oneline --decorate
 ```
 
-后续 Runtime Decision session 必须只执行 [`operations/planning/rebaseline-plan-v1.md`](operations/planning/rebaseline-plan-v1.md) 中对应 checkpoint，先做 DoR，再记录 target-host/runtime/model identity，最后完成验证、Review、work log、checkpoint commit 和 post-check。
+后续 session 必须只执行 [`operations/planning/rebaseline-plan-v1.md`](operations/planning/rebaseline-plan-v1.md) 中当前 checkpoint，先做 DoR，再记录 target-host/runtime/model identity，最后完成验证、Review、work log、checkpoint commit 和 post-check。
