@@ -6,8 +6,8 @@
 
 - Project：MiniMax H3 Studio
 - Goal：ComfyUI-first local H3 Studio with Guided Mode, Advanced Canvas and multi-Worker Replica Execution
-- Current checkpoint：R1 — Baseline Reset (`accepted`)
-- Next checkpoint：R2 — Runtime Decision (`pending`)
+- Current checkpoint：R2 — Runtime Decision (`accepted`)
+- Next checkpoint：R3 — Single-Worker Product (`pending`)
 - Route：`fixed-round-plan`
 - Source precedence：[`CONTEXT.md`](../../CONTEXT.md) → accepted ADR → [`operations/planning/rebaseline-plan-v1.md`](rebaseline-plan-v1.md) → [`operations/planning/orchestration-v1.md`](orchestration-v1.md) → current product docs → historical evidence
 
@@ -16,7 +16,7 @@
 | Round | Primary implementation session | Independently reviewable delivery boundary | Acceptance evidence | Status |
 |---|---|---|---|---|
 | R1 | R1-baseline-reset | ComfyUI-first source of truth、冲突检查、文档 Review 和 checkpoint | docs; conflict scan; review; checkpoint commit | accepted |
-| R2 | R2-runtime-decision | A5000 上一个可复现优化 H3 ComfyUI path；SwarmUI 或 thin Control Plane disposition | valid cold/warm media probe; pinned stack; SwarmUI disposition | pending |
+| R2 | R2-runtime-decision | A5000 上一个可复现优化 H3 ComfyUI path；SwarmUI 或 thin Control Plane disposition | valid cold/warm media probe; pinned stack; SwarmUI disposition | accepted |
 | R3 | R3-single-worker-product | Controlled Distribution、Guided Mode、Advanced Canvas、单 Worker T2VA/FL2VA | controlled Distribution; valid workflows; traceable Runs and Artifacts | pending |
 | R4 | R4-multi-worker-mvp | 至少两个独立 Worker 并发、五卡 queued work、安全和最终 MVP | two concurrent valid Runs; five-GPU pool readiness; recovery/profile/packaging evidence | pending |
 
