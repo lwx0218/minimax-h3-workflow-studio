@@ -1,6 +1,6 @@
 # R4 Multi-Worker MVP Acceptance Report
 
-Status: accepted candidate to commit; final review passed, pending scoped checkpoint commit, post-commit verify and final Owner acceptance.
+Status: accepted checkpoint commit `7c87982`; final review and post-commit verify passed; pending final Owner acceptance.
 
 ## Product acceptance summary
 
@@ -60,6 +60,12 @@ After two-Worker, five-Worker and profile validations:
 - Draft and Final are R4 candidate profiles at the same 864×480/5s geometry. Final is not a non-quantized/reference route and must not be described as lossless.
 - Cancellation uses assigned-Worker ComfyUI `/interrupt` for active Studio Runs only; terminal Run cancel is a no-op, and exact mid-generation cancellation latency remains bounded by ComfyUI behavior.
 - This is local single-user only; no auth, public deployment, quotas or multi-tenancy are included.
+
+## Commit and post-commit verification
+
+- Checkpoint commit: `7c87982` (`r4: accept multi-worker mvp`).
+- Post-commit verification: PASS for py_compile, R3/R4 no-GPU verifiers, rebaseline docs verifier, `git diff --check`, closed ports `30210`..`30215`, and no GPU compute apps.
+- Push: not performed.
 
 ## Anti-drift conclusion
 

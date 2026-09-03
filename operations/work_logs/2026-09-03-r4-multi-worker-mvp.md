@@ -6,7 +6,7 @@
 - Primary implementation session：`R4-multi-worker-mvp`
 - Git baseline：`f4113dd` (`r3: accept single-worker product`)
 - Checkpoint：`R4 — Multi-Worker MVP`
-- Status：`accepted_candidate_to_commit`
+- Status：`accepted_checkpoint_commit`
 - Route：Owner-authorized fixed checkpoint / Class A concurrency+GPU safety + Class B product
 
 ## Scope Boundary
@@ -190,6 +190,10 @@ Final review artifact: `operations/reviews/r4-multi-worker-mvp-review.md`; verdi
 - Cancellation uses assigned-Worker ComfyUI `/interrupt`; precise mid-generation interrupt latency remains bounded by ComfyUI.
 - R4 remains local single-user only with `127.0.0.1` default binding.
 
-## Next
+## Closeout
 
-Run pre-commit gate, create scoped R4 checkpoint commit, run post-commit verify, then request final Owner acceptance. Do not push.
+- Final review: PASS, P0=0/P1=0/P2=3 disposition accepted.
+- Scoped checkpoint commit: `7c87982` (`r4: accept multi-worker mvp`).
+- Post-commit verify: PASS.
+- Push: not performed.
+- Next: Owner final acceptance.

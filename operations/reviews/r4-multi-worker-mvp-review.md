@@ -50,4 +50,4 @@ R4 reuses ComfyUI graph, queue, execution and progress semantics. The Control Pl
 
 ## Conclusion
 
-Final review passes with P0=0, P1=0 and P2 disposition recorded. Proceed to pre-commit gate, scoped R4 checkpoint commit, post-commit verification, then Owner final acceptance. Do not stage `.pi/` or ignored `var/` runtime evidence.
+Final review passes with P0=0, P1=0 and P2 disposition recorded. Scoped checkpoint commit `7c87982` (`r4: accept multi-worker mvp`) and post-commit verification are complete. Pending only Owner final acceptance; `.pi/` and ignored `var/` runtime evidence remain excluded.
