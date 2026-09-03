@@ -75,6 +75,8 @@
 const $ = (id) => document.getElementById(id);
 const progress = {};   // run_id -> {value, max}
 const sockets = {};    // run_id -> WebSocket
+const latest = {};     // run_id -> latest run summary (so websocket handlers see the current prompt_id)
+const rendered = {};   // run_id -> signature of what is currently in the DOM
 let profiles = {};
 
 async function api(path, opts = {}) {
@@ -85,16 +87,16 @@ async function api(path, opts = {}) {
   return data;
 }
 
-function esc(s) { return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 async function init() {
   const cfg = await api('/api/config');
   profiles = cfg.profiles;
-  $('profileSelect').innerHTML = Object.entries(cfg.profiles).map(([id, p]) => `<option value="${id}" ${id === cfg.default_profile ? 'selected' : ''}>${esc(p.label || id)}</option>`).join('');
+  $('profileSelect').innerHTML = Object.entries(cfg.profiles).map(([id, p]) => `<option value="${esc(id)}" ${id === cfg.default_profile ? 'selected' : ''}>${esc(p.label || id)}</option>`).join('');
   showProfileNote();
   if (cfg.canvas_url) $('canvasLink').href = cfg.canvas_url;
   await refresh();
-  setInterval(refresh, 3000);
+  setInterval(() => refresh().catch(e => console.warn(e)), 3000);
 }
 
 function showProfileNote() { const p = profiles[$('profileSelect').value]; $('profileNote').textContent = p ? `${p.width}×${p.height}, ${p.duration_seconds}s, ${p.sigma_points} sigma points. ${p.description || ''}` : ''; }
@@ -112,56 +114,84 @@ $('runForm').onsubmit = async (ev) => {
   finally { $('submitBtn').disabled = false; }
 };
 
-async function cancelRun(id) { try { await api('/api/runs/' + id + '/cancel', { method: 'POST' }); await refresh(); } catch (e) { alert(e.message); } }
+async function cancelRun(id) { try { await api('/api/runs/' + encodeURIComponent(id) + '/cancel', { method: 'POST' }); await refresh(); } catch (e) { alert(e.message); } }
 
 function watch(run) {
-  if (sockets[run.run_id] || !run.worker || !run.client_id) return;
+  // One socket per active run, opened only once the worker knows the prompt (prompt_id set).
+  if (sockets[run.run_id] || !run.worker || !run.client_id || !run.prompt_id) return;
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  const ws = new WebSocket(`${proto}://${location.host}/canvas/${run.worker}/ws?clientId=${encodeURIComponent(run.client_id)}`);
+  const ws = new WebSocket(`${proto}://${location.host}/canvas/${encodeURIComponent(run.worker)}/ws?clientId=${encodeURIComponent(run.client_id)}`);
   ws.binaryType = 'arraybuffer';
   ws.onmessage = (ev) => {
     if (typeof ev.data !== 'string') return;
-    try {
-      const msg = JSON.parse(ev.data);
-      if (msg.type === 'progress' && msg.data && msg.data.prompt_id === run.prompt_id) {
-        progress[run.run_id] = { value: msg.data.value, max: msg.data.max };
-        const bar = document.querySelector(`progress[data-run="${run.run_id}"]`);
-        if (bar) { bar.value = msg.data.value; bar.max = msg.data.max; }
-        const lbl = document.querySelector(`[data-steps="${run.run_id}"]`);
-        if (lbl) lbl.textContent = `${msg.data.value}/${msg.data.max}`;
-      }
-    } catch {}
+    let msg; try { msg = JSON.parse(ev.data); } catch { return; }
+    const cur = latest[run.run_id];
+    if (!cur || msg.type !== 'progress' || !msg.data || msg.data.prompt_id !== cur.prompt_id) return;
+    progress[run.run_id] = { value: msg.data.value, max: msg.data.max };
+    const bar = document.querySelector(`progress[data-run="${CSS.escape(run.run_id)}"]`);
+    if (bar) { bar.value = msg.data.value; bar.max = msg.data.max; }
+    const lbl = document.querySelector(`[data-steps="${CSS.escape(run.run_id)}"]`);
+    if (lbl) lbl.textContent = `${msg.data.value}/${msg.data.max}`;
   };
   ws.onclose = () => { delete sockets[run.run_id]; };
   sockets[run.run_id] = ws;
 }
 function unwatch(id) { if (sockets[id]) { sockets[id].close(); delete sockets[id]; } }
 
+function signature(r) {
+  return [r.status, r.worker, r.queue_position, r.queue_reason, r.failure_reason, r.artifacts.length, r.timing && r.timing.created_to_completed_s].join('|');
+}
+
+function renderRun(r) {
+  const isActive = ['submitting', 'queued', 'running'].includes(r.status);
+  const p = progress[r.run_id];
+  const statusText = r.status === 'pending' ? `pending · 排队第 ${r.queue_position ?? '?'} 位${r.queue_reason ? '（' + esc(r.queue_reason) + '）' : ''}` : esc(r.status);
+  return `<header><span><code>${esc(r.run_id)}</code> · ${esc(r.kind)} · ${esc(r.profile || '')} · seed ${esc(r.seed)}${r.worker ? ' · ' + esc(r.worker) : ''}</span><span class="status ${esc(r.status)}">${statusText}</span></header>
+    <div class="prompt" title="${esc(r.prompt_preview)}">${esc(r.prompt_preview)}</div>
+    ${r.status === 'running' ? `<progress data-run="${esc(r.run_id)}" value="${p ? p.value : 0}" max="${p ? p.max : 100}"></progress><span class="muted" data-steps="${esc(r.run_id)}">${p ? p.value + '/' + p.max : '等待进度…'}</span>` : ''}
+    ${r.failure_reason ? `<div class="muted">${esc(r.failure_reason)}</div>` : ''}
+    ${r.timing && r.timing.created_to_completed_s != null ? `<div class="muted">耗时 ${esc(r.timing.created_to_completed_s)}s</div>` : ''}
+    ${r.artifacts.map(a => `<video controls preload="metadata" src="${esc(a.download_url)}"></video><div class="muted"><a href="${esc(a.download_url)}" download>${esc(a.filename)}</a></div>`).join('')}
+    ${(isActive || r.status === 'pending') ? `<div class="actions"><button class="secondary" data-cancel="${esc(r.run_id)}">取消</button></div>` : ''}`;
+}
+
 async function refresh() {
   const [pool, runsDoc] = await Promise.all([api('/api/workers'), api('/api/runs')]);
-  $('pool').innerHTML = pool.workers.map(w => `<div class="worker ${w.healthy ? (w.current_run ? 'busy' : 'ok') : ''}"><span class="dot"></span><b>${esc(w.id)}</b><br>GPU ${esc(w.gpu)} · :${w.port}<br>${w.healthy ? (w.current_run ? '运行 ' + esc(w.current_run) : '空闲') : '离线'}${w.gpu_stats ? `<br>${Math.round((w.gpu_stats.vram_total - w.gpu_stats.vram_free)/1048576)} / ${Math.round(w.gpu_stats.vram_total/1048576)} MiB` : ''}<br><a href="/canvas/${esc(w.id)}/" target="_blank">画布</a></div>`).join('');
+  $('pool').innerHTML = pool.workers.map(w => `<div class="worker ${w.healthy ? (w.current_run ? 'busy' : 'ok') : ''}"><span class="dot"></span><b>${esc(w.id)}</b><br>GPU ${esc(w.gpu)} · :${esc(w.port)}<br>${w.healthy ? (w.current_run ? '运行 ' + esc(w.current_run) : '空闲') : '离线'}${w.gpu_stats ? `<br>${Math.round((w.gpu_stats.vram_total - w.gpu_stats.vram_free)/1048576)} / ${Math.round(w.gpu_stats.vram_total/1048576)} MiB` : ''}<br><a href="/canvas/${encodeURIComponent(w.id)}/" target="_blank">画布</a></div>`).join('');
   $('poolSummary').textContent = `${pool.healthy_count}/${pool.worker_count} 在线 · 并发 ${pool.active_run_count}/${pool.safe_concurrent_runs}`;
   const m = pool.host_memory || {};
   $('memLine').textContent = m.used_gib != null ? `主机内存 ${m.used_gib} / ${m.total_gib} GiB（abort ${pool.host_ram_abort_gib}，hard ${pool.host_ram_hard_gib}）${pool.memory_block_reason ? ' — ' + pool.memory_block_reason : ''}` : '主机内存状态不可用';
 
+  // Keyed reconciliation: only touch DOM nodes whose content changed, so playing <video>s survive refreshes.
+  const container = $('runs');
   const active = new Set();
-  $('runs').innerHTML = runsDoc.runs.map(r => {
+  const seen = new Set();
+  let prev = null;
+  for (const r of runsDoc.runs) {
+    latest[r.run_id] = r;
+    seen.add(r.run_id);
     const isActive = ['submitting', 'queued', 'running'].includes(r.status);
     if (isActive) { active.add(r.run_id); watch(r); }
-    const p = progress[r.run_id];
-    const statusText = r.status === 'pending' ? `pending · 排队第 ${r.queue_position ?? '?'} 位${r.queue_reason ? '（' + esc(r.queue_reason) + '）' : ''}` : r.status;
-    return `<div class="run"><header><span><code>${esc(r.run_id)}</code> · ${esc(r.kind)} · ${esc(r.profile || '')} · seed ${esc(r.seed)}${r.worker ? ' · ' + esc(r.worker) : ''}</span><span class="status ${esc(r.status)}">${statusText}</span></header>
-      <div class="prompt" title="${esc(r.prompt_preview)}">${esc(r.prompt_preview)}</div>
-      ${r.status === 'running' ? `<progress data-run="${esc(r.run_id)}" value="${p ? p.value : 0}" max="${p ? p.max : 100}"></progress><span class="muted" data-steps="${esc(r.run_id)}">${p ? p.value + '/' + p.max : '等待进度…'}</span>` : ''}
-      ${r.failure_reason ? `<div class="muted">${esc(r.failure_reason)}</div>` : ''}
-      ${r.timing && r.timing.created_to_completed_s != null ? `<div class="muted">耗时 ${r.timing.created_to_completed_s}s</div>` : ''}
-      ${r.artifacts.map(a => `<video controls preload="metadata" src="${esc(a.download_url)}"></video><div class="muted"><a href="${esc(a.download_url)}" download>${esc(a.filename)}</a></div>`).join('')}
-      ${(isActive || r.status === 'pending') ? `<div class="actions"><button class="secondary" onclick="cancelRun('${esc(r.run_id)}')">取消</button></div>` : ''}
-    </div>`;
-  }).join('') || '<p class="muted">还没有任务。</p>';
+    let el = container.querySelector(`.run[data-run-id="${CSS.escape(r.run_id)}"]`);
+    const sig = signature(r);
+    if (!el) {
+      el = document.createElement('div'); el.className = 'run'; el.dataset.runId = r.run_id;
+      el.innerHTML = renderRun(r); rendered[r.run_id] = sig;
+    } else if (rendered[r.run_id] !== sig) {
+      el.innerHTML = renderRun(r); rendered[r.run_id] = sig;
+    }
+    // keep list order equal to the API order
+    if (prev ? el.previousElementSibling !== prev : container.firstElementChild !== el) container.insertBefore(el, prev ? prev.nextElementSibling : container.firstElementChild);
+    prev = el;
+  }
+  for (const el of Array.from(container.querySelectorAll('.run'))) if (!seen.has(el.dataset.runId)) { el.remove(); delete rendered[el.dataset.runId]; }
+  const empty = container.querySelector('.empty');
+  if (!runsDoc.runs.length && !empty) container.innerHTML = '<p class="muted empty">还没有任务。</p>';
+  if (runsDoc.runs.length && empty) empty.remove();
   for (const id of Object.keys(sockets)) if (!active.has(id)) unwatch(id);
 }
 
+$('runs').addEventListener('click', (ev) => { const b = ev.target.closest('button[data-cancel]'); if (b) cancelRun(b.dataset.cancel); });
 init().catch(e => { $('runs').innerHTML = `<p class="muted">初始化失败：${esc(e.message)}</p>`; });
 </script>
 </body>

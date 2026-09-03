@@ -202,6 +202,44 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(c4["cancel_action"], "queue_delete")
         self.assertEqual(fake4.state.interrupts, before, "cancelling a queued Run must not interrupt the worker's current job")
 
+    def test_cancel_during_submit_withdraws_prompt_and_releases_lease(self):
+        for f in self.fakes:
+            f.state.prompt_delay_s = 1.0
+        results = {}
+        t = threading.Thread(target=lambda: results.setdefault("rec", self.submit(seed="9")))
+        t.start()
+        time.sleep(0.3)  # dispatch is now inside POST /prompt
+        pending = self.service.store.list_by_status({"submitting"})
+        self.assertEqual(len(pending), 1)
+        run_id = pending[0]["run_id"]
+        cancelled = self.service.cancel(run_id)
+        self.assertEqual(cancelled["status"], "cancelled")
+        t.join(5)
+        final = self.service.store.read(run_id)
+        self.assertEqual(final["status"], "cancelled", "late /prompt reply must not resurrect a cancelled Run")
+        self.assertEqual(final["cancel_action"], "withdrawn_after_submit")
+        self.assertEqual(self.service.pool.leases(), {}, "lease must be released exactly once")
+        fake = next(f for f in self.fakes if f.port == final["worker"]["port"])
+        self.assertNotIn(final["prompt_id"], fake.state.pending)
+        self.assertNotEqual(fake.state.running, final["prompt_id"])
+
+    def test_interrupted_on_worker_becomes_cancelled_and_lost_prompt_fails(self):
+        r1 = self.submit()
+        fake = self.fake_for(r1)
+        # someone hit "interrupt" in the canvas
+        fake.state.interrupts += 0
+        fake.state.history[r1["prompt_id"]] = {"status": {"status_str": "error", "completed": False, "messages": [["execution_interrupted", {}]]}, "outputs": {}}
+        fake.state.running = None
+        self.assertEqual(self.service.refresh(r1["run_id"])["status"], "cancelled")
+        # worker restarted and forgot the prompt entirely
+        r2 = self.submit()
+        fake2 = self.fake_for(r2)
+        fake2.state.running = None; fake2.state.pending = []
+        self.assertIn(self.service.refresh(r2["run_id"])["status"], {"queued", "running"}, "inside the grace window nothing changes")
+        self.service.store.update(r2["run_id"], last_seen_at="2000-01-01T00:00:00Z", submitted_at="2000-01-01T00:00:00Z")
+        self.assertEqual(self.service.refresh(r2["run_id"])["status"], "failed")
+        self.assertEqual(self.service.pool.leases(), {})
+
     def test_fl2va_uploads_first_frame_at_dispatch(self):
         png = Path(self.tmp.name) / "frame.png"
         png.write_bytes(bytes.fromhex("89504e470d0a1a0a0000000d4948445200000001000000010802000000907753de0000000c49444154789c63606060000000040001f61738550000000049454e44ae426082"))
@@ -322,6 +360,20 @@ class HttpTests(unittest.TestCase):
             opener.open(self.base + "/canvas", timeout=10)
         self.assertEqual(ctx.exception.code, 302)
         self.assertEqual(ctx.exception.headers["Location"], "/canvas/worker-gpu0/")
+
+    def test_canvas_websocket_refusal_is_relayed_and_closed(self):
+        s = socket.create_connection(("127.0.0.1", self.port), timeout=10)
+        s.sendall(b"GET /canvas/worker-gpu0/ws?deny=1 HTTP/1.1\r\nHost: x\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n")
+        got = b""
+        deadline = time.time() + 5
+        while time.time() < deadline:
+            chunk = s.recv(4096)
+            if not chunk:
+                break
+            got += chunk
+        self.assertTrue(got.startswith(b"HTTP/1.1 403"), got)
+        self.assertLess(time.time(), deadline, "proxy must close the client connection after a refused upgrade")
+        s.close()
 
     def test_canvas_websocket_proxy_pumps_bytes(self):
         s = socket.create_connection(("127.0.0.1", self.port), timeout=10)

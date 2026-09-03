@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import calendar
 import json
 import threading
 import time
@@ -25,7 +26,7 @@ def utc_now() -> str:
 
 def parse_utc(value: str) -> float | None:
     try:
-        return time.mktime(time.strptime(value, "%Y-%m-%dT%H:%M:%SZ")) - time.timezone
+        return float(calendar.timegm(time.strptime(value, "%Y-%m-%dT%H:%M:%SZ")))
     except Exception:  # noqa: BLE001
         return None
 
@@ -77,6 +78,17 @@ class RunStore:
             record.update(fields)
             self.write(record)
             return record
+
+    def update_if(self, run_id: str, expected_status: str | set[str], **fields: Any) -> bool:
+        """Compare-and-set on status: apply fields only if the Run is still in expected_status."""
+        expected = {expected_status} if isinstance(expected_status, str) else set(expected_status)
+        with self._lock:
+            record = self.read(run_id)
+            if record.get("status") not in expected:
+                return False
+            record.update(fields)
+            self.write(record)
+            return True
 
     def _sorted(self) -> list[dict[str, Any]]:
         with self._lock:

@@ -10,9 +10,9 @@ import email.policy
 import http.client
 import json
 import shutil
+import signal
 import socket
 import threading
-import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
@@ -21,11 +21,13 @@ from pathlib import Path
 from typing import Any
 
 from .assets import validate_assets
+from .comfy import ComfyError, open_url
 from .config import StudioConfig
 from .service import StudioService
 from .workers import NoWorkerAvailable
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
+WS_IDLE_TIMEOUT_S = 600  # drop a proxied websocket that has been silent this long (ComfyUI pings every few seconds)
 HOP_BY_HOP = {"connection", "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailers", "transfer-encoding", "upgrade"}
 
 
@@ -129,10 +131,11 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if parts and parts[0] == "canvas":
                 return self.proxy_canvas(parts, parsed)
+            body = self.read_body()  # always drain so a keep-alive connection stays in sync
             if parsed.path == "/api/runs":
                 temp_dir = self.service.config.upload_root / f"upload-{uuid.uuid4().hex}"
                 try:
-                    fields, files = parse_multipart(self.headers.get("Content-Type", ""), self.read_body(), temp_dir)
+                    fields, files = parse_multipart(self.headers.get("Content-Type", ""), body, temp_dir)
                     return self.send_json(self.service.submit(fields, files), 201)
                 finally:
                     shutil.rmtree(temp_dir, ignore_errors=True)
@@ -156,11 +159,12 @@ class Handler(BaseHTTPRequestHandler):
         headers = {}
         if self.headers.get("Range"):
             headers["Range"] = self.headers["Range"]
-        req = urllib.request.Request(source, headers=headers)
         try:
-            upstream = urllib.request.urlopen(req, timeout=120)
-        except urllib.error.HTTPError as exc:
-            return self.send_json({"error": "worker_error", "status": exc.code}, 502)
+            upstream = open_url(urllib.request.Request(source, headers=headers), 120)
+        except ComfyError as exc:
+            return self.send_json({"error": "worker_error", "status": exc.status, "detail": exc.body[:300]}, 502)
+        except OSError as exc:
+            return self.send_json({"error": "worker_unreachable", "detail": repr(exc)}, 502)
         with upstream:
             self.send_response(upstream.status)
             for key in ("Content-Type", "Content-Length", "Content-Range", "Accept-Ranges", "Last-Modified", "ETag"):
@@ -170,14 +174,34 @@ class Handler(BaseHTTPRequestHandler):
             if not upstream.headers.get("Accept-Ranges"):
                 self.send_header("Accept-Ranges", "bytes")
             self.send_header("Content-Disposition", f'inline; filename="{run_id}-{artifact_id}.mp4"')
-            if not upstream.headers.get("Content-Length"):
+            expected = upstream.headers.get("Content-Length")
+            if not expected:
                 self.send_header("Connection", "close")
                 self.close_connection = True
             self.end_headers()
-            shutil.copyfileobj(upstream, self.wfile, 256 * 1024)
+            self._copy_body(upstream, int(expected) if expected else None)
+
+    def _copy_body(self, src, expected: int | None) -> None:
+        """Stream src to the client; close the connection if the upstream ended early or the client went away."""
+        sent = 0
+        try:
+            while True:
+                chunk = src.read(256 * 1024)
+                if not chunk:
+                    break
+                self.wfile.write(chunk)
+                sent += len(chunk)
+        except OSError:
+            self.close_connection = True
+            return
+        if expected is not None and sent != expected:
+            self.close_connection = True
 
     # ----- /canvas/<worker-id>/... reverse proxy ------------------------------
     def proxy_canvas(self, parts: list[str], parsed: urllib.parse.ParseResult) -> None:
+        keep_alive_state = self.close_connection
+        if self.command != "GET":
+            self.close_connection = True  # early replies below do not read the request body
         if len(parts) == 1:
             first = self.service.pool.first_healthy()
             if first is None:
@@ -194,6 +218,7 @@ class Handler(BaseHTTPRequestHandler):
         upstream_path = parsed.path[len(prefix):] or "/"
         if parsed.query:
             upstream_path += "?" + parsed.query
+        self.close_connection = keep_alive_state
         if self.headers.get("Upgrade", "").lower() == "websocket":
             return self.proxy_websocket(worker.host, worker.port, upstream_path)
         return self.proxy_http(worker.host, worker.port, upstream_path)
@@ -220,68 +245,96 @@ class Handler(BaseHTTPRequestHandler):
     def proxy_http(self, host: str, port: int, path: str) -> None:
         body = self.read_body()
         conn = http.client.HTTPConnection(host, port, timeout=300)
+        headers_sent = False
         try:
             conn.request(self.command, path, body=body if body else None, headers=self._upstream_headers(host, port))
             resp = conn.getresponse()
             self.send_response(resp.status, resp.reason)
-            has_length = False
+            expected = None
             for key, value in resp.getheaders():
                 if key.lower() in HOP_BY_HOP:
                     continue
                 if key.lower() == "content-length":
-                    has_length = True
+                    expected = int(value)
                 self.send_header(key, value)
-            if not has_length:
+            if expected is None:
                 self.send_header("Connection", "close")
                 self.close_connection = True
             self.end_headers()
+            headers_sent = True
             if self.command != "HEAD":
-                shutil.copyfileobj(resp, self.wfile, 256 * 1024)
-        except (ConnectionRefusedError, socket.timeout, OSError) as exc:
-            self.send_json({"error": "worker_unreachable", "detail": repr(exc)}, 502)
+                self._copy_body(resp, expected)
+        except (ConnectionRefusedError, socket.timeout, OSError, http.client.HTTPException) as exc:
+            if headers_sent:
+                self.close_connection = True
+            else:
+                self.send_json({"error": "worker_unreachable", "detail": repr(exc)}, 502)
         finally:
             conn.close()
 
     def proxy_websocket(self, host: str, port: int, path: str) -> None:
-        """Forward the raw upgrade handshake, then pump bytes both ways."""
+        """Forward the upgrade handshake; on 101 pump bytes both ways, otherwise relay the refusal and close."""
+        self.close_connection = True
         try:
             upstream = socket.create_connection((host, port), timeout=30)
         except OSError as exc:
             return self.send_json({"error": "worker_unreachable", "detail": repr(exc)}, 502)
-        headers = self._upstream_headers(host, port)
-        headers["Connection"] = "Upgrade"
-        headers["Upgrade"] = "websocket"
-        request = f"GET {path} HTTP/1.1\r\n" + "".join(f"{k}: {v}\r\n" for k, v in headers.items()) + "\r\n"
-        upstream.sendall(request.encode("latin-1"))
-        upstream.settimeout(None)
         client = self.connection
-        client.settimeout(None)
-        self.close_connection = True
+        try:
+            headers = self._upstream_headers(host, port)
+            headers["Connection"] = "Upgrade"
+            headers["Upgrade"] = "websocket"
+            request = f"GET {path} HTTP/1.1\r\n" + "".join(f"{k}: {v}\r\n" for k, v in headers.items()) + "\r\n"
+            upstream.sendall(request.encode("latin-1"))
+            head = b""
+            while b"\r\n\r\n" not in head and len(head) < 65536:
+                chunk = upstream.recv(4096)
+                if not chunk:
+                    break
+                head += chunk
+            status_line = head.split(b"\r\n", 1)[0]
+            client.sendall(head)
+            if b" 101 " not in status_line:
+                # Refused upgrade (403 origin check, 404, ...): the worker keeps the connection alive; we do not.
+                return
+            upstream.settimeout(WS_IDLE_TIMEOUT_S)
+            client.settimeout(WS_IDLE_TIMEOUT_S)
 
-        def pump(src: socket.socket, dst: socket.socket) -> None:
+            def pump(src: socket.socket, dst: socket.socket) -> None:
+                try:
+                    while True:
+                        data = src.recv(65536)
+                        if not data:
+                            break
+                        dst.sendall(data)
+                except OSError:
+                    pass
+                finally:
+                    for s_ in (src, dst):
+                        try:
+                            s_.shutdown(socket.SHUT_RDWR)
+                        except OSError:
+                            pass
+
+            t = threading.Thread(target=pump, args=(upstream, client), daemon=True)
+            t.start()
+            pump(client, upstream)
+            t.join(timeout=5)
+        except OSError:
+            pass
+        finally:
             try:
-                while True:
-                    chunk = src.recv(65536)
-                    if not chunk:
-                        break
-                    dst.sendall(chunk)
+                upstream.close()
             except OSError:
                 pass
-            finally:
-                for s in (src, dst):
-                    try:
-                        s.shutdown(socket.SHUT_RDWR)
-                    except OSError:
-                        pass
 
-        # A websocket handshake has no body, so nothing past the headers needs replaying.
-        t = threading.Thread(target=pump, args=(upstream, client), daemon=True)
-        t.start()
-        pump(client, upstream)
-        t.join(timeout=5)
+
+def _raise_interrupt(_signum: int, _frame: Any) -> None:
+    raise KeyboardInterrupt
 
 
 def run_server(config: StudioConfig | None = None) -> None:
+    signal.signal(signal.SIGTERM, _raise_interrupt)
     cfg = config or StudioConfig.from_env()
     service = StudioService(cfg)
     service.start()

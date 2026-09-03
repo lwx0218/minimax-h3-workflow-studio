@@ -112,12 +112,15 @@ class WorkerPool:
     def check_health(self) -> dict[str, dict[str, Any]]:
         """Probe every worker once (blocking, ~5 s worst case per dead worker)."""
         for spec in self.workers:
-            item: dict[str, Any] = {"checked_at": time.time()}
+            now = time.time()
+            item: dict[str, Any] = {"checked_at": now}
             try:
                 stats = self.client(spec).system_stats()
-                item.update(healthy=True, system_stats=stats, error=None)
+                item.update(healthy=True, system_stats=stats, error=None, unhealthy_since=None)
             except Exception as exc:  # noqa: BLE001
-                item.update(healthy=False, error=repr(exc))
+                with self._lock:
+                    since = self._health.get(spec.id, {}).get("unhealthy_since") or now
+                item.update(healthy=False, error=repr(exc), unhealthy_since=since)
             with self._lock:
                 self._health[spec.id] = item
         return dict(self._health)
@@ -143,6 +146,14 @@ class WorkerPool:
     def is_healthy(self, worker_id: str) -> bool:
         with self._lock:
             return bool(self._health.get(worker_id, {}).get("healthy"))
+
+    def unhealthy_for(self, worker_id: str) -> float:
+        """Seconds the worker has been continuously unhealthy (0 if healthy or unknown)."""
+        with self._lock:
+            h = self._health.get(worker_id, {})
+        if h.get("healthy") or not h.get("unhealthy_since"):
+            return 0.0
+        return time.time() - float(h["unhealthy_since"])
 
     def first_healthy(self) -> WorkerSpec | None:
         for spec in self.workers:

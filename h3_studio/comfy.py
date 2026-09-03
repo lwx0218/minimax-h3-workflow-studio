@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import mimetypes
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
@@ -12,12 +13,32 @@ from typing import Any
 
 VIDEO_SUFFIXES = (".mp4", ".webm", ".mkv", ".mov")
 
+# Workers are local services: never route them through http_proxy/HTTP_PROXY.
+OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+
+class ComfyError(RuntimeError):
+    """An HTTP error from a worker, with the response body (ComfyUI returns JSON error detail)."""
+
+    def __init__(self, status: int, url: str, body: str):
+        super().__init__(f"worker HTTP {status} for {url}: {body[:800]}")
+        self.status = status
+        self.body = body
+
+
+def open_url(req: urllib.request.Request | str, timeout: float):
+    try:
+        return OPENER.open(req, timeout=timeout)
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", "replace") if exc.fp else ""
+        raise ComfyError(exc.code, exc.geturl() or str(req), body) from exc
+
 
 def _json_request(url: str, payload: dict[str, Any] | None = None, timeout: float = 30.0, method: str | None = None) -> dict[str, Any]:
     data = None if payload is None else json.dumps(payload).encode("utf-8")
     headers = {} if payload is None else {"Content-Type": "application/json"}
     req = urllib.request.Request(url, data=data, headers=headers, method=method)
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
+    with open_url(req, timeout) as resp:
         raw = resp.read().decode("utf-8")
         return json.loads(raw) if raw else {}
 
@@ -61,14 +82,14 @@ class ComfyClient:
             headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=120) as resp:
+        with open_url(req, 120) as resp:
             return json.loads(resp.read().decode("utf-8"))
 
     def submit_prompt(self, prompt: dict[str, Any], *, client_id: str) -> dict[str, Any]:
         return _json_request(f"{self.base_url}/prompt", {"prompt": prompt, "client_id": client_id}, timeout=60)
 
     def history(self, prompt_id: str) -> dict[str, Any]:
-        return _json_request(f"{self.base_url}/history/{urllib.parse.quote(prompt_id)}", timeout=30)
+        return _json_request(f"{self.base_url}/history/{urllib.parse.quote(prompt_id)}", timeout=10)
 
     def queue(self) -> dict[str, Any]:
         """Return {"queue_running": [...], "queue_pending": [...]}; item[1] is the prompt_id."""
@@ -123,12 +144,23 @@ def video_artifacts(history_entry: dict[str, Any], client: ComfyClient) -> list[
 
 
 def history_status(entry: dict[str, Any] | None) -> str | None:
-    """Map a ComfyUI history entry to 'completed' / 'failed' / None (not finished)."""
+    """Map a ComfyUI history entry to 'completed' / 'failed' / 'interrupted' / None (not finished)."""
     if not isinstance(entry, dict):
         return None
     status = entry.get("status") or {}
     if status.get("completed") is True or status.get("status_str") == "success":
         return "completed"
     if status.get("status_str") == "error":
+        for message in status.get("messages") or []:
+            if isinstance(message, list) and message and message[0] == "execution_interrupted":
+                return "interrupted"
         return "failed"
     return None
+
+
+def history_error(entry: dict[str, Any]) -> str:
+    for message in reversed((entry.get("status") or {}).get("messages") or []):
+        if isinstance(message, list) and len(message) > 1 and message[0] == "execution_error":
+            detail = message[1] if isinstance(message[1], dict) else {}
+            return f"{detail.get('node_type', '')} {detail.get('exception_message', '')}".strip() or str(message[1])
+    return "unknown"

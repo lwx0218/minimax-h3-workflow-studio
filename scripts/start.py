@@ -146,8 +146,12 @@ def main() -> int:
         exit_code = studio.wait()
     except KeyboardInterrupt:
         exit_code = 130
-        if studio is not None:
+        if studio is not None and studio.poll() is None:
             studio.send_signal(signal.SIGINT)
+            try:
+                studio.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                pass
     finally:
         if studio is not None:
             terminate(studio)

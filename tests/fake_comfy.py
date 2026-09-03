@@ -18,6 +18,7 @@ class FakeComfyState:
         self.prompts: dict[str, dict[str, Any]] = {}
         self.interrupts = 0
         self.uploads: list[str] = []
+        self.prompt_delay_s = 0.0          # slow down POST /prompt to exercise cancel-during-submit
         self.video = b"\x00\x00\x00\x1cftypisom" + bytes(range(256)) * 8
 
     def _advance(self) -> None:
@@ -102,6 +103,9 @@ class FakeComfyHandler(BaseHTTPRequestHandler):
             self.wfile.write(data)
             return
         if parsed.path == "/ws" and self.headers.get("Upgrade", "").lower() == "websocket":
+            if "deny" in parsed.query:
+                # Emulate ComfyUI refusing the upgrade (origin middleware) on a keep-alive connection.
+                return self._json({"error": "forbidden"}, 403)
             # Not a real websocket: complete the upgrade and echo bytes, which is all the proxy test needs.
             self.send_response(101)
             self.send_header("Upgrade", "websocket")
@@ -131,6 +135,9 @@ class FakeComfyHandler(BaseHTTPRequestHandler):
         st = self.state
         body = self.rfile.read(int(self.headers.get("Content-Length") or 0))
         if parsed.path == "/prompt":
+            if st.prompt_delay_s:
+                import time
+                time.sleep(st.prompt_delay_s)
             doc = json.loads(body)
             pid = st.submit(doc["prompt"], doc.get("client_id", ""))
             return self._json({"prompt_id": pid, "number": len(st.prompts), "node_errors": {}})
@@ -159,11 +166,16 @@ class FakeComfyHandler(BaseHTTPRequestHandler):
         return self._json({"error": "not found"}, 404)
 
 
+class _QuietServer(ThreadingHTTPServer):
+    def handle_error(self, request, client_address):  # connection resets from proxied sockets are expected
+        pass
+
+
 class FakeComfyServer:
     def __init__(self) -> None:
         self.state = FakeComfyState()
         handler = type("Handler", (FakeComfyHandler,), {"state": self.state})
-        self.httpd = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+        self.httpd = _QuietServer(("127.0.0.1", 0), handler)
         self.httpd.daemon_threads = True
         self.port = self.httpd.server_address[1]
         self.thread = threading.Thread(target=self.httpd.serve_forever, daemon=True)
