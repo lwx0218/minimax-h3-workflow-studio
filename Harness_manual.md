@@ -16,8 +16,9 @@
 
 - Baseline Reset：`accepted`；checkpoint commit 与 post-commit verify 已成功
 - Historical R1：`accepted / feasible_with_constraints`
-- 下一 checkpoint：Runtime Decision
-- 产品实现、ComfyUI 安装、权重下载和新的 GPU 实验：尚未开始
+- R2 Runtime Decision：`accepted`；ComfyUI H3 runtime 与 thin Control Plane 方向已确定
+- R3 Single-Worker Product：`accepted`；Guided Mode/Advanced Canvas 单 Worker T2VA+FL2VA 产品切片已验证
+- R4 Multi-Worker MVP：`accepted_candidate_to_commit`；final review 已通过，等待 scoped commit、post-commit verify 和 Owner final acceptance
 
 ## 新 Session 读取顺序
 
@@ -43,7 +44,7 @@ Owner 只需介入：Goal/Spec 或架构变化、Runtime Decision 的控制选�
 | R1 — Baseline Reset | 文档、冲突扫描、Review、checkpoint commit |
 | R2 — Runtime Decision | 一个可复现的 A5000 ComfyUI H3 runtime；SwarmUI 或 thin Control Plane 决策 |
 | R3 — Single-Worker Product | Guided Mode/Advanced Canvas 到单 Worker 的用户闭环 |
-| R4 — Multi-Worker MVP | 独立 Runs 并发、五卡 Worker Pool 和最终验收 |
+| R4 — Multi-Worker MVP | 独立 Runs 并发、五卡 Worker Pool 和最终验收（accepted candidate to commit） |
 
 Single-Request Multi-GPU 是 Track X，可选且不阻塞四个 checkpoint。不得恢复旧 R2–R7 或创建字母子阶段。
 
@@ -76,4 +77,4 @@ git status --short --branch
 git log -1 --oneline --decorate
 ```
 
-后续 Runtime Decision session 必须只执行 [`operations/planning/rebaseline-plan-v1.md`](operations/planning/rebaseline-plan-v1.md) 中对应 checkpoint，先做 DoR，再记录 target-host/runtime/model identity，最后完成验证、Review、work log、checkpoint commit 和 post-check。
+R4 candidate 使用 `scripts/start_r4_worker_pool.py` 启动 Worker Pool；详见 `docs/operations/r4-multi-worker-mvp.md`。后续 session 必须只执行 [`operations/planning/rebaseline-plan-v1.md`](operations/planning/rebaseline-plan-v1.md) 中当前 checkpoint，先做 DoR，再记录 target-host/runtime/model identity，最后完成验证、Review、work log、checkpoint commit 和 post-check。

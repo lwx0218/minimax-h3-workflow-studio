@@ -6,9 +6,11 @@ MiniMax H3 Studio 是一个面向单机单用户的本地 H3 音视频生成产�
 
 - **Baseline Reset：accepted**（checkpoint commit 及 post-commit verify 已通过）
 - **Historical R1：accepted / feasible_with_constraints**
-- **下一 checkpoint：Runtime Decision**
-- 产品实现：尚未开始
-- ComfyUI 安装、模型下载和新的 GPU 实验：本次重置未执行
+- **R2 Runtime Decision：accepted**（ComfyUI v0.34.2 + RH MiniMax-H3 路线已验证）
+- **R3 Single-Worker Product：accepted**（单 Worker Guided Mode/Advanced Canvas T2VA+FL2VA 已验证）
+- **当前 checkpoint：R4 — Multi-Worker MVP accepted candidate**（final review 已通过；待 commit、post-commit verify 和 Owner final acceptance）
+- R4 Worker Pool、恢复、profile 和验证命令见 [`docs/operations/r4-multi-worker-mvp.md`](docs/operations/r4-multi-worker-mvp.md)
+- R3 产品入口、Controlled Distribution 和验证命令见 [`docs/operations/r3-single-worker-product.md`](docs/operations/r3-single-worker-product.md)
 - R1 证据：[`operations/reviews/2026-08-21-r1-feasibility-report.md`](operations/reviews/2026-08-21-r1-feasibility-report.md)
 - 重基线来源：[`CONTEXT.md`](CONTEXT.md)、[`docs/adr/0001-use-comfyui-as-studio-foundation.md`](docs/adr/0001-use-comfyui-as-studio-foundation.md)、[`operations/planning/rebaseline-plan-v1.md`](operations/planning/rebaseline-plan-v1.md)
 
@@ -54,9 +56,14 @@ Single-Request Multi-GPU 属于可选 Track X，不是第五个 checkpoint，也
 
 ```bash
 cp .env.example .env.local
+export H3_MODEL_ROOT=$EXTERNAL_MINIMAX_H3_MODEL_ROOT
+python3 scripts/verify_r3_no_gpu.py
+python3 scripts/verify_r4_no_gpu.py
+python3 scripts/prepare_r3_distribution.py --compute-sha
+python3 scripts/start_r4_worker_pool.py --workers all
 ```
 
-当前 session 不启动产品。未来运行数据统一置于 `var/`；服务默认只监听 `127.0.0.1`，通过 SSH tunnel 访问。
+运行数据统一置于 ignored `var/`；服务默认监听本机内网地址 `172.16.2.111`。R4 真实并发验证使用 `scripts/run_r4_concurrent_e2e.py`，profile matrix 使用 `scripts/run_r4_profile_matrix.py`。默认五个 Worker 可被发现，活跃 H3 并发由 `config/worker-pool.json` 的 measured host-RAM 安全线限制为 2。
 
 ## 历史证据
 

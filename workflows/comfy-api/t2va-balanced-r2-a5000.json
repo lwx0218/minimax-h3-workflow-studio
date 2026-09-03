@@ -1,0 +1,12 @@
+{
+  "1": {"class_type": "RHMiniMaxH3DirectTextEncoderLoader", "inputs": {"model_root": "MiniMax-H3", "dtype": "auto", "text_encoder_path": "qwen3-vl-32b-int8_convrot.safetensors"}},
+  "2": {"class_type": "RHMiniMaxH3DirectModelLoader", "inputs": {"model_root": "MiniMax-H3", "dtype": "auto", "transformer_path": "MiniMax-H3-FL2VA-int8_convrot.safetensors"}},
+  "3": {"class_type": "RHMiniMaxH3DirectVAELoader", "inputs": {"model_root": "MiniMax-H3", "video_vae_path": "MiniMax-H3-video_vae.safetensors", "audio_vae_path": "MiniMax-H3-audio_vae.safetensors"}},
+  "4": {"class_type": "RHMiniMaxH3T2VATarget", "inputs": {"aspect_ratio": "16:9", "duration_seconds": 5.0, "width": 864, "height": 480}},
+  "5": {"class_type": "RHMiniMaxH3T2VATextEncode", "inputs": {"h3_text_encoder": ["1", 0], "prompt": "A five-second cinematic 16:9 shot of a small paper boat gliding through a rain-lit city gutter at night. Reflections ripple across the water, a distant train passes, and the ambient rain and wheel noise stay synchronized with the movement. Natural camera motion, no subtitles, no logos."}},
+  "6": {"class_type": "RHMiniMaxH3EmptyAVLatent", "inputs": {"target": ["4", 0]}},
+  "7": {"class_type": "RHMiniMaxH3DualSigmaSampler", "inputs": {"h3_model": ["2", 0], "conditioning": ["5", 0], "av_latent": ["6", 0], "seed": 42, "sigma_points": 21, "video_shift": 12.0, "audio_shift": 3.0, "accel": "off", "denoise_video": true, "cache_dit_rdt": 0.12, "cache_dit_mc": 2, "cache_dit_warmup": 4, "velocity_stride": 4, "sampler_mode": "res_multistep", "allow_accel_with_res_multistep": false}},
+  "8": {"class_type": "RHMiniMaxH3DecodeAV", "inputs": {"h3_vae_bundle": ["3", 0], "sampled_av_latent": ["7", 0]}},
+  "9": {"class_type": "CreateVideo", "inputs": {"images": ["8", 0], "audio": ["8", 1], "fps": 24.0, "bit_depth": 8}},
+  "10": {"class_type": "SaveVideo", "inputs": {"video": ["9", 0], "filename_prefix": "h3_studio/template_t2va", "format": "mp4", "codec": "h264"}}
+}

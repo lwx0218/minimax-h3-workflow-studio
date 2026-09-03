@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "checkpoint": "R3-single-worker-product",
+  "comfyui": {
+    "repo": "https://github.com/comfyanonymous/ComfyUI.git",
+    "tag": "v0.34.2",
+    "commit": "169fcf35a2fc163fec31338b816503ddac0d3fcf",
+    "frontend_package": "1.49.6",
+    "workflow_templates": "0.11.50"
+  },
+  "custom_nodes": [
+    {
+      "name": "ComfyUI_RH_MinMaxH3",
+      "repo": "https://github.com/HM-RunningHub/ComfyUI_RH_MinMaxH3.git",
+      "commit": "d6c5f7b0d4e03936ac4a9834be63ecc6b5637dad",
+      "purpose": "approved MiniMax-H3 T2VA/FL2VA nodes"
+    }
+  ],
+  "python_stack": {
+    "dependency_lock": "config/python-lock-r3.txt",
+    "python": "3.12",
+    "torch": "2.14.0+cu130",
+    "torchvision": "0.29.0+cu130",
+    "torchaudio": "2.11.0+cu130",
+    "comfy-kitchen": "0.2.31",
+    "comfy-aimdo": "0.4.15",
+    "transformers": "5.8.1",
+    "accelerate": "1.14.0",
+    "av": "18.1.0"
+  },
+  "network_defaults": {
+    "studio_host": "172.16.2.111",
+    "studio_port": 30210,
+    "worker_host": "172.16.2.111",
+    "worker_port": 30211
+  },
+  "controller_decision": "build_thin_control_plane",
+  "notes": [
+    "ComfyUI remains the authoritative graph, queue and execution engine.",
+    "The Studio server stores Run/Artifact metadata and submits native ComfyUI API prompts only."
+  ]
+}

@@ -2,12 +2,12 @@
 
 Plan approval: approved
 Git baseline: b532a55f4549a2177ecd95237a4f3510cfb0aec5
-Accepted-effective Rounds: R1
+Accepted-effective Rounds: R1, R2, R3
 
 ## Control Header
 
 - Status: `approved`
-- Active Round: `R2` — Runtime Decision
+- Active Round: `R4` — Multi-Worker MVP
 - Owner decision date: 2026-08-28
 - Repository: `lwx0218/minimax-h3-workflow-studio`
 - Audited Git HEAD: `b532a55f4549a2177ecd95237a4f3510cfb0aec5`
@@ -114,8 +114,8 @@ The new plan uses four numbered named checkpoints. They are the only acceptance-
 | Round | Primary implementation session | Independently reviewable delivery boundary | Acceptance evidence | Status |
 |---|---|---|---|---|
 | R1 | R1-baseline-reset | Repository instructions agree on the ComfyUI-first architecture | docs; conflict scan; review; checkpoint commit | accepted |
-| R2 | R2-runtime-decision | One reproducible optimized H3 route works on A5000 and the controller direction is decided | valid cold/warm media probe; pinned stack; SwarmUI disposition | pending |
-| R3 | R3-single-worker-product | One user can author and run T2VA/FL2VA through Guided Mode or Advanced Canvas | controlled Distribution; valid workflows; traceable Runs and Artifacts | pending |
+| R2 | R2-runtime-decision | One reproducible optimized H3 route works on A5000 and the controller direction is decided | valid cold/warm media probe; pinned stack; SwarmUI disposition | accepted |
+| R3 | R3-single-worker-product | One user can author and run T2VA/FL2VA through Guided Mode or Advanced Canvas | controlled Distribution; valid workflows; traceable Runs and Artifacts | accepted |
 | R4 | R4-multi-worker-mvp | Independent Runs use multiple A5000 Workers safely and the product meets MVP acceptance | two concurrent valid Runs; five-GPU pool readiness; recovery/profile/packaging evidence | pending |
 
 Historical R1 is closed during Baseline Reset as `accepted / feasible_with_constraints`; it is evidence disposition, not an additional future checkpoint.
@@ -236,9 +236,9 @@ Acceptance:
 ## R3 — Single-Worker Product
 
 - Handoff contracts: `CONTEXT.md`; `docs/adr/0001-use-comfyui-as-studio-foundation.md`; `operations/planning/rebaseline-plan-v1.md`; `operations/planning/orchestration-v1.md`; `docs/specs/mvp-v0.md`; `docs/architecture/architecture-v0.md`
-- Latest work log: `none`
-- Latest review: `none`
-- Review work log: `operations/work_logs/`
+- Latest work log: `operations/work_logs/2026-09-02-r3-single-worker-product.md`
+- Latest review: `operations/reviews/2026-08-28-r3-final-integrated-review.md`
+- Review work log: `operations/work_logs/2026-09-02-r3-single-worker-product.md`
 - Non-goals: custom canvas; independent graph runtime; arbitrary third-party nodes; multi-worker scheduling; Track X
 - Dependencies / Definition of Ready: R2 accepted; pinned runtime decision; approved asset manifest; clean-session start path; mock/no-GPU validation boundary
 - Expected change surfaces: controlled Distribution; native workflow templates; Guided Mode; Advanced Canvas settings/extensions; Run and Artifact traceability
