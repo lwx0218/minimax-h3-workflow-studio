@@ -1,3 +1,3 @@
-"""MiniMax H3 Studio single-worker product slice."""
+"""MiniMax H3 Studio: a thin control plane over isolated ComfyUI workers."""
 
-__version__ = "0.1.0-r3"
+__version__ = "0.2.0"

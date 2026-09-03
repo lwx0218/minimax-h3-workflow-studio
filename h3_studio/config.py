@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -15,66 +14,61 @@ def load_json(path: Path) -> dict[str, Any]:
         return json.load(f)
 
 
+def _resolve(root: Path, value: str) -> Path:
+    path = Path(value).expanduser()
+    return (path if path.is_absolute() else root / path).resolve()
+
+
 @dataclass(frozen=True)
 class StudioConfig:
     repo_root: Path
     studio_host: str
     studio_port: int
-    worker_host: str
-    worker_port: int
-    worker_url: str
+    runtime_root: Path
     worker_pool: dict[str, Any]
     data_root: Path
-    run_root: Path
-    upload_root: Path
     runtime_lock: dict[str, Any]
     asset_manifest: dict[str, Any]
     profiles: dict[str, Any]
+    profile_aliases: dict[str, str]
     default_profile: str
 
     @classmethod
-    def from_env(cls, repo_root: Path | None = None) -> "StudioConfig":
+    def from_env(cls, repo_root: Path | None = None, env: dict[str, str] | None = None) -> "StudioConfig":
+        env = os.environ if env is None else env
         root = (repo_root or REPO_ROOT).resolve()
         runtime_lock = load_json(root / "config" / "runtime-lock.json")
         asset_manifest = load_json(root / "config" / "asset-manifest.json")
         profile_doc = load_json(root / "config" / "generation-profiles.json")
         net = runtime_lock.get("network_defaults", {})
-        studio_host = os.environ.get("H3_STUDIO_HOST", str(net.get("studio_host", "127.0.0.1")))
-        studio_port = int(os.environ.get("H3_STUDIO_PORT", str(net.get("studio_port", 30210))))
-        worker_host = os.environ.get("H3_WORKER_HOST", str(net.get("worker_host", "127.0.0.1")))
-        worker_port = int(os.environ.get("H3_WORKER_PORT", str(net.get("worker_port", 30211))))
-        worker_url = os.environ.get("H3_WORKER_URL", f"http://{worker_host}:{worker_port}").rstrip("/")
-        pool_path = Path(os.environ.get("H3_WORKER_POOL_CONFIG", str(root / "config" / "worker-pool.json")))
-        if not pool_path.is_absolute():
-            pool_path = root / pool_path
-        if pool_path.exists():
-            worker_pool = load_json(pool_path)
-        else:
-            worker_pool = {"schema_version": 1, "safe_concurrent_runs": 1, "workers": [{"id": "worker-gpu0", "gpu": "0", "url": worker_url}]}
-        data_root = Path(os.environ.get("H3_STUDIO_DATA", str(root / "var" / "h3-studio"))).resolve()
-        run_root = data_root / "runs"
-        upload_root = data_root / "uploads"
+        pool_path = _resolve(root, env.get("H3_WORKER_POOL_CONFIG", "config/worker-pool.json"))
         return cls(
             repo_root=root,
-            studio_host=studio_host,
-            studio_port=studio_port,
-            worker_host=worker_host,
-            worker_port=worker_port,
-            worker_url=worker_url,
-            worker_pool=worker_pool,
-            data_root=data_root,
-            run_root=run_root,
-            upload_root=upload_root,
+            studio_host=env.get("H3_STUDIO_HOST", str(net.get("studio_host", "127.0.0.1"))),
+            studio_port=int(env.get("H3_STUDIO_PORT", str(net.get("studio_port", 30210)))),
+            runtime_root=_resolve(root, env.get("H3_RUNTIME_ROOT", "var/runtime")),
+            worker_pool=load_json(pool_path),
+            data_root=_resolve(root, env.get("H3_STUDIO_DATA", "var/h3-studio")),
             runtime_lock=runtime_lock,
             asset_manifest=asset_manifest,
             profiles=profile_doc["profiles"],
+            profile_aliases=dict(profile_doc.get("aliases", {})),
             default_profile=str(profile_doc["default_profile"]),
         )
 
+    @property
+    def run_root(self) -> Path:
+        return self.data_root / "runs"
+
+    @property
+    def upload_root(self) -> Path:
+        return self.data_root / "uploads"
+
     def profile(self, name: str | None) -> dict[str, Any]:
         key = name or self.default_profile
+        key = self.profile_aliases.get(key, key)
         if key not in self.profiles:
-            raise ValueError(f"unknown Generation Profile: {key}")
+            raise ValueError(f"unknown Generation Profile: {name}")
         return dict(self.profiles[key]) | {"name": key}
 
     def ensure_dirs(self) -> None:

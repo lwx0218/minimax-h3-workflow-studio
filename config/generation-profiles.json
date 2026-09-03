@@ -1,9 +1,15 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
+  "default_profile": "balanced",
+  "aliases": {
+    "draft-r4-a5000": "draft",
+    "balanced-r2-a5000": "balanced",
+    "final-r4-a5000": "final"
+  },
   "profiles": {
-    "draft-r4-a5000": {
-      "label": "Draft — R4 quick iteration candidate",
-      "description": "R4 candidate for quicker iteration on A5000. Uses fewer sigma points than Balanced; target-host quality must be judged from R4 evidence and is not reference/lossless.",
+    "draft": {
+      "label": "Draft — quick iteration (9 sigma points)",
+      "description": "Fewer sampling points for fast iteration. Measured about 170 s for a 5 s 864x480 clip on one A5000.",
       "width": 864,
       "height": 480,
       "aspect_ratio": "16:9",
@@ -21,11 +27,11 @@
       "velocity_stride": 4,
       "allow_accel_with_res_multistep": false,
       "dtype": "auto",
-      "disclosure": "Uses pruned INT8 ConvRot DiT and quantized Qwen3-VL text encoder with fewer sampling points; approximate/fast tradeoff, not lossless/reference quality."
+      "disclosure": "Pruned INT8 ConvRot DiT + quantized Qwen3-VL text encoder with fewer sampling points; not reference quality."
     },
-    "balanced-r2-a5000": {
-      "label": "Balanced — R2/R3 A5000 proven route",
-      "description": "R2 accepted single A5000 ComfyUI/RH MiniMax-H3 route and R3 product route. R4 records concurrent throughput separately.",
+    "balanced": {
+      "label": "Balanced — default (21 sigma points)",
+      "description": "Proven single-A5000 route. Measured about 260 s for a 5 s 864x480 clip.",
       "width": 864,
       "height": 480,
       "aspect_ratio": "16:9",
@@ -43,11 +49,11 @@
       "velocity_stride": 4,
       "allow_accel_with_res_multistep": false,
       "dtype": "auto",
-      "disclosure": "Uses pruned INT8 ConvRot DiT and quantized Qwen3-VL text encoder; not presented as lossless/reference quality."
+      "disclosure": "Pruned INT8 ConvRot DiT + quantized Qwen3-VL text encoder; not reference quality."
     },
-    "final-r4-a5000": {
-      "label": "Final — R4 higher-step candidate",
-      "description": "R4 candidate for higher-quality output on A5000. Uses more sigma points than Balanced at the same MVP geometry; it is still quantized/pruned and not a lossless/reference route.",
+    "final": {
+      "label": "Final — higher quality (25 sigma points)",
+      "description": "More sampling points at the same geometry. Measured about 295 s for a 5 s 864x480 clip.",
       "width": 864,
       "height": 480,
       "aspect_ratio": "16:9",
@@ -65,8 +71,7 @@
       "velocity_stride": 4,
       "allow_accel_with_res_multistep": false,
       "dtype": "auto",
-      "disclosure": "Uses pruned INT8 ConvRot DiT and quantized Qwen3-VL text encoder with more sampling points; higher-step quantized output, not lossless/reference quality."
+      "disclosure": "Pruned INT8 ConvRot DiT + quantized Qwen3-VL text encoder with more sampling points; still quantized, not reference quality."
     }
-  },
-  "default_profile": "balanced-r2-a5000"
+  }
 }

@@ -1,60 +1,21 @@
 {
-  "schema_version": 1,
-  "checkpoint": "R4-multi-worker-mvp",
+  "schema_version": 2,
   "safe_concurrent_runs": 2,
   "host_ram_abort_gib": 230,
   "host_ram_hard_gib": 235,
-  "assignment_policy": "least_recent_healthy_idle_fail_closed",
+  "health_interval_s": 5,
+  "worker_host": "127.0.0.1",
   "notes": [
-    "All workers are isolated ComfyUI services; ComfyUI remains the execution queue/engine.",
-    "The Control Plane only assigns independent Runs to healthy workers and refuses submissions when safe concurrency or host RAM limits are reached.",
-    "R2 measured one warm H3 worker at ~72 GiB RSS / ~55 GiB host-used peak in its probe process; R4 default safe concurrency is 2 pending refreshed target-host evidence."
+    "Each worker is an isolated ComfyUI process bound to one GPU. ComfyUI stays the execution engine.",
+    "Workers listen on worker_host (default loopback) and are reached only through the Studio; the Studio reverse-proxies each worker's frontend under /canvas/<worker-id>/.",
+    "safe_concurrent_runs caps how many Runs execute at the same time; extra Runs wait in the Studio queue instead of being rejected.",
+    "The cap of 2 comes from a 2-worker measurement on a 251 GiB host (about 41 GiB host RAM per running worker). Raise it only after measuring 3/4/5 concurrent Runs on the target host."
   ],
   "workers": [
-    {
-      "id": "worker-gpu0",
-      "gpu": "0",
-      "host": "172.16.2.111",
-      "port": 30211,
-      "output_namespace": "worker-gpu0",
-      "temp_namespace": "worker-gpu0",
-      "log_namespace": "worker-gpu0"
-    },
-    {
-      "id": "worker-gpu1",
-      "gpu": "1",
-      "host": "172.16.2.111",
-      "port": 30212,
-      "output_namespace": "worker-gpu1",
-      "temp_namespace": "worker-gpu1",
-      "log_namespace": "worker-gpu1"
-    },
-    {
-      "id": "worker-gpu2",
-      "gpu": "2",
-      "host": "172.16.2.111",
-      "port": 30213,
-      "output_namespace": "worker-gpu2",
-      "temp_namespace": "worker-gpu2",
-      "log_namespace": "worker-gpu2"
-    },
-    {
-      "id": "worker-gpu3",
-      "gpu": "3",
-      "host": "172.16.2.111",
-      "port": 30214,
-      "output_namespace": "worker-gpu3",
-      "temp_namespace": "worker-gpu3",
-      "log_namespace": "worker-gpu3"
-    },
-    {
-      "id": "worker-gpu4",
-      "gpu": "4",
-      "host": "172.16.2.111",
-      "port": 30215,
-      "output_namespace": "worker-gpu4",
-      "temp_namespace": "worker-gpu4",
-      "log_namespace": "worker-gpu4"
-    }
+    {"id": "worker-gpu0", "gpu": "0", "port": 30211},
+    {"id": "worker-gpu1", "gpu": "1", "port": 30212},
+    {"id": "worker-gpu2", "gpu": "2", "port": 30213},
+    {"id": "worker-gpu3", "gpu": "3", "port": 30214},
+    {"id": "worker-gpu4", "gpu": "4", "port": 30215}
   ]
 }

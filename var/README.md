@@ -1,27 +1,17 @@
-# Runtime Data
+# var/
 
-`var/` 是本项目所有应用运行数据的唯一默认根目录。
+Everything under `var/` is ignored by Git. Layout:
 
-预期布局：
-
-```text
+```
 var/
-├── db/          # SQLite
-├── uploads/     # 用户输入素材
-├── outputs/     # 生成视频、音频、缩略图和 sidecar metadata
-├── runs/        # Workflow/Run 快照和执行日志
-├── cache/       # Hugging Face、Torch、SGLang 等项目缓存
-├── logs/        # 服务日志
-└── tmp/         # 临时文件
+├── runtime/        # ComfyUI checkout + venv (scripts/prepare_runtime.py)
+├── h3-studio/      # runs/<run_id>/run.json, uploads/
+├── outputs/<worker-id>/   # ComfyUI output namespace per worker
+├── tmp/<worker-id>/       # ComfyUI temp namespace per worker
+├── logs/           # comfyui-<worker-id>.log, h3-studio.log, *.pid
+├── cache/          # HF_HOME, TORCH_HOME, tools (ffmpeg/ffprobe)
+└── manifests/      # prepare/start evidence json
 ```
 
-除本说明文件外，`var/` 下内容均被 `.gitignore` 排除。
-
-规则：
-
-- 应用不得默认将运行数据写入用户主目录或系统临时目录
-- 启动入口应设置 `HF_HOME`、`TORCH_HOME`、`XDG_CACHE_HOME` 和 `TMPDIR`
-- 生成媒体本身已压缩时，不再进行无收益的二次压缩
-- 大型 JSON 快照和已完成日志可以按阈值压缩
-- 删除 Run 时应通过 artifact 索引清理关联文件
-- 现有外部模型目录不复制到 `var/`
+Older checkouts used `var/runtimes/r3-single-worker-product/`; move it with
+`mv var/runtimes/r3-single-worker-product var/runtime` or set `H3_RUNTIME_ROOT`.
