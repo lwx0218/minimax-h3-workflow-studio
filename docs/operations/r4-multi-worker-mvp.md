@@ -4,7 +4,7 @@ Status: R4 accepted candidate to commit; final review passed, pending scoped com
 
 ## Runtime shape
 
-- Studio: `127.0.0.1:30210`
+- Studio: `172.16.2.111:30210`
 - Worker Pool config: `config/worker-pool.json`
 - Workers: `worker-gpu0`..`worker-gpu4`, each an isolated ComfyUI service bound with `CUDA_VISIBLE_DEVICES=<gpu>` and ports `30211`..`30215`.
 - Runtime root: ignored `var/runtimes/r3-single-worker-product/` (R3 pinned ComfyUI/RH distribution reused for R4).
@@ -43,7 +43,7 @@ For a two-Worker concurrency validation or reduced-memory operation:
 python3 scripts/start_r4_worker_pool.py --workers worker-gpu0,worker-gpu1
 ```
 
-Open `http://127.0.0.1:30210/`. Guided Mode submits to the Worker Pool with scheduling, safe-concurrency checks and Run traceability. Advanced Canvas opens the first healthy pinned ComfyUI frontend; direct Advanced Canvas submissions use that Worker's native ComfyUI queue and should be operated within the same documented safe-concurrency limit. Individual Worker frontends are available at `http://127.0.0.1:30211/` through `:30215/` when those Workers are launched.
+Open `http://172.16.2.111:30210/`. Guided Mode submits to the Worker Pool with scheduling, safe-concurrency checks and Run traceability. Advanced Canvas opens the first healthy pinned ComfyUI frontend; direct Advanced Canvas submissions use that Worker's native ComfyUI queue and should be operated within the same documented safe-concurrency limit. Individual Worker frontends are available at `http://172.16.2.111:30211/` through `:30215/` when those Workers are launched.
 
 ## Safety limits
 
@@ -89,7 +89,7 @@ ss -ltnp '( sport = :30210 or sport = :30211 or sport = :30212 or sport = :30213
 
 ## Known limits
 
-- R4 supports local single-user operation only; no auth, quotas, multi-tenancy or public binding.
+- R4 supports single-host operator operation only; no auth, quotas, multi-tenancy or public binding.
 - Guided Mode/product API Runs are scheduled and traced by Studio. Direct Advanced Canvas submissions are native ComfyUI Worker submissions and are not converted into Studio Run records unless submitted through the Studio API.
 - Cancellation maps active Studio Runs to ComfyUI `/interrupt` on the assigned Worker and is bounded by ComfyUI behavior; cancelling an already terminal Run does not interrupt the Worker.
 - Five simultaneous H3 generations are intentionally not enabled by default; all five GPUs are addressable, while active H3 concurrency remains capped at two pending further host-RAM evidence.

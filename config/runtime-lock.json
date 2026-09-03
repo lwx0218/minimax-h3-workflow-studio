@@ -29,9 +29,9 @@
     "av": "18.1.0"
   },
   "network_defaults": {
-    "studio_host": "127.0.0.1",
+    "studio_host": "172.16.2.111",
     "studio_port": 30210,
-    "worker_host": "127.0.0.1",
+    "worker_host": "172.16.2.111",
     "worker_port": 30211
   },
   "controller_decision": "build_thin_control_plane",

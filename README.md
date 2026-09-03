@@ -57,7 +57,7 @@ python3 scripts/prepare_r3_distribution.py --compute-sha
 python3 scripts/start_r4_worker_pool.py --workers all
 ```
 
-运行数据统一置于 ignored `var/`；服务默认只监听 `127.0.0.1`，通过 SSH tunnel 访问。R4 真实并发验证使用 `scripts/run_r4_concurrent_e2e.py`，profile matrix 使用 `scripts/run_r4_profile_matrix.py`。默认五个 Worker 可被发现，活跃 H3 并发由 `config/worker-pool.json` 的 measured host-RAM 安全线限制为 2。
+运行数据统一置于 ignored `var/`；服务默认监听本机内网地址 `172.16.2.111`。R4 真实并发验证使用 `scripts/run_r4_concurrent_e2e.py`，profile matrix 使用 `scripts/run_r4_profile_matrix.py`。默认五个 Worker 可被发现，活跃 H3 并发由 `config/worker-pool.json` 的 measured host-RAM 安全线限制为 2。
 
 ## 历史证据
 
