@@ -23,6 +23,7 @@ class StudioConfig:
     worker_host: str
     worker_port: int
     worker_url: str
+    worker_pool: dict[str, Any]
     data_root: Path
     run_root: Path
     upload_root: Path
@@ -43,6 +44,13 @@ class StudioConfig:
         worker_host = os.environ.get("H3_WORKER_HOST", str(net.get("worker_host", "127.0.0.1")))
         worker_port = int(os.environ.get("H3_WORKER_PORT", str(net.get("worker_port", 30211))))
         worker_url = os.environ.get("H3_WORKER_URL", f"http://{worker_host}:{worker_port}").rstrip("/")
+        pool_path = Path(os.environ.get("H3_WORKER_POOL_CONFIG", str(root / "config" / "worker-pool.json")))
+        if not pool_path.is_absolute():
+            pool_path = root / pool_path
+        if pool_path.exists():
+            worker_pool = load_json(pool_path)
+        else:
+            worker_pool = {"schema_version": 1, "safe_concurrent_runs": 1, "workers": [{"id": "worker-gpu0", "gpu": "0", "url": worker_url}]}
         data_root = Path(os.environ.get("H3_STUDIO_DATA", str(root / "var" / "h3-studio"))).resolve()
         run_root = data_root / "runs"
         upload_root = data_root / "uploads"
@@ -53,6 +61,7 @@ class StudioConfig:
             worker_host=worker_host,
             worker_port=worker_port,
             worker_url=worker_url,
+            worker_pool=worker_pool,
             data_root=data_root,
             run_root=run_root,
             upload_root=upload_root,

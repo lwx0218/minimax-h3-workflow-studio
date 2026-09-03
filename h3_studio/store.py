@@ -47,8 +47,20 @@ class RunStore:
                     "created_at": data.get("created_at"),
                     "updated_at": data.get("updated_at"),
                     "prompt_id": data.get("prompt_id"),
+                    "worker": data.get("worker"),
                     "artifacts": data.get("artifacts", []),
                 })
+            except Exception:  # noqa: BLE001
+                continue
+        return records
+
+    def list_by_status(self, statuses: set[str]) -> list[dict[str, Any]]:
+        records: list[dict[str, Any]] = []
+        for path in sorted(self.run_root.glob("*/run.json"), key=lambda p: p.stat().st_mtime, reverse=True):
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+                if data.get("status") in statuses:
+                    records.append(data)
             except Exception:  # noqa: BLE001
                 continue
         return records

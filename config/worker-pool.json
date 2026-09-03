@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "checkpoint": "R4-multi-worker-mvp",
+  "safe_concurrent_runs": 2,
+  "host_ram_abort_gib": 230,
+  "host_ram_hard_gib": 235,
+  "assignment_policy": "least_recent_healthy_idle_fail_closed",
+  "notes": [
+    "All workers are isolated ComfyUI services; ComfyUI remains the execution queue/engine.",
+    "The Control Plane only assigns independent Runs to healthy workers and refuses submissions when safe concurrency or host RAM limits are reached.",
+    "R2 measured one warm H3 worker at ~72 GiB RSS / ~55 GiB host-used peak in its probe process; R4 default safe concurrency is 2 pending refreshed target-host evidence."
+  ],
+  "workers": [
+    {"id": "worker-gpu0", "gpu": "0", "host": "127.0.0.1", "port": 30211, "output_namespace": "worker-gpu0", "temp_namespace": "worker-gpu0", "log_namespace": "worker-gpu0"},
+    {"id": "worker-gpu1", "gpu": "1", "host": "127.0.0.1", "port": 30212, "output_namespace": "worker-gpu1", "temp_namespace": "worker-gpu1", "log_namespace": "worker-gpu1"},
+    {"id": "worker-gpu2", "gpu": "2", "host": "127.0.0.1", "port": 30213, "output_namespace": "worker-gpu2", "temp_namespace": "worker-gpu2", "log_namespace": "worker-gpu2"},
+    {"id": "worker-gpu3", "gpu": "3", "host": "127.0.0.1", "port": 30214, "output_namespace": "worker-gpu3", "temp_namespace": "worker-gpu3", "log_namespace": "worker-gpu3"},
+    {"id": "worker-gpu4", "gpu": "4", "host": "127.0.0.1", "port": 30215, "output_namespace": "worker-gpu4", "temp_namespace": "worker-gpu4", "log_namespace": "worker-gpu4"}
+  ]
+}

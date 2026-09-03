@@ -6,8 +6,8 @@
 
 - Project：MiniMax H3 Studio
 - Goal：ComfyUI-first local H3 Studio with Guided Mode, Advanced Canvas and multi-Worker Replica Execution
-- Current checkpoint：R3 — Single-Worker Product (`accepted`)
-- Next checkpoint：R4 — Multi-Worker MVP (`pending`)
+- Current checkpoint：R4 — Multi-Worker MVP (`accepted_candidate_to_commit`)
+- Next checkpoint：Owner final acceptance after scoped commit and post-commit verify
 - Route：`fixed-round-plan`
 - Source precedence：[`CONTEXT.md`](../../CONTEXT.md) → accepted ADR → [`operations/planning/rebaseline-plan-v1.md`](rebaseline-plan-v1.md) → [`operations/planning/orchestration-v1.md`](orchestration-v1.md) → current product docs → historical evidence
 
@@ -18,9 +18,9 @@
 | R1 | R1-baseline-reset | ComfyUI-first source of truth、冲突检查、文档 Review 和 checkpoint | docs; conflict scan; review; checkpoint commit | accepted |
 | R2 | R2-runtime-decision | A5000 上一个可复现优化 H3 ComfyUI path；SwarmUI 或 thin Control Plane disposition | valid cold/warm media probe; pinned stack; SwarmUI disposition | accepted |
 | R3 | R3-single-worker-product | Controlled Distribution、Guided Mode、Advanced Canvas、单 Worker T2VA/FL2VA | controlled Distribution; valid workflows; traceable Runs and Artifacts | accepted |
-| R4 | R4-multi-worker-mvp | 至少两个独立 Worker 并发、五卡 queued work、安全和最终 MVP | two concurrent valid Runs; five-GPU pool readiness; recovery/profile/packaging evidence | pending |
+| R4 | R4-multi-worker-mvp | 至少两个独立 Worker 并发、五卡 queued work、安全和最终 MVP | two concurrent valid Runs; five-GPU pool readiness; recovery/profile/packaging evidence | accepted_candidate_to_commit |
 
-Historical R1 feasibility is `accepted / feasible_with_constraints` as evidence disposition during R1 Baseline Reset. R2 Runtime Decision is `accepted` at the R2 checkpoint commit. It is not a fifth/current checkpoint. Single-Request Multi-GPU is optional Track X and does not block the ledger.
+Historical R1 feasibility is `accepted / feasible_with_constraints` as evidence disposition during R1 Baseline Reset. R2 Runtime Decision and R3 Single-Worker Product are `accepted` at their checkpoint commits. R4 Multi-Worker MVP has final review PASS (P0=0/P1=0/P2 disposition accepted) and is ready for scoped checkpoint commit/post-commit verify. Single-Request Multi-GPU is optional Track X and does not block the ledger.
 
 ## Baseline Reset Acceptance
 

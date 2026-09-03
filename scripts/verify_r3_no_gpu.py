@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from h3_studio.config import StudioConfig
 from h3_studio.server import StudioService
+from h3_studio.workers import WorkerSpec
 from h3_studio.workflows import load_api_template, workflow_summary
 
 
@@ -49,6 +50,35 @@ class FakeComfy:
         return "mock://artifact"
 
 
+class FakePool:
+    def __init__(self, comfy: FakeComfy):
+        self.worker = WorkerSpec.from_doc({"id": "worker-gpu0", "gpu": "0", "host": "127.0.0.1", "port": 9})
+        self.workers = [self.worker]
+        self.safe_concurrent_runs = 1
+        self.comfy = comfy
+
+    def recover_stale_runs(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
+        return {"count": 0, "recovered": []}
+
+    def acquire(self, run_id: str) -> WorkerSpec:
+        return self.worker
+
+    def release(self, run_id: str) -> None:
+        return None
+
+    def client(self, worker: WorkerSpec | dict[str, Any]) -> FakeComfy:
+        return self.comfy
+
+    def worker_for_record(self, record: dict[str, Any]) -> WorkerSpec:
+        return self.worker
+
+    def discover(self) -> list[dict[str, Any]]:
+        return [{**self.worker.as_record(), "healthy": True, "busy": False, "active_runs": []}]
+
+    def status(self, *, include_health: bool = True) -> dict[str, Any]:
+        return {"worker_count": 1, "safe_concurrent_runs": 1, "active_run_count": 0, "workers": self.discover()}
+
+
 def assert_no_banned_classes(summary: dict[str, Any]) -> None:
     banned = {"WorkflowDocument", "ExecutionPlan", "DAGExecutor", "NodeRegistry"}
     classes = " ".join(summary["class_types"])
@@ -69,7 +99,8 @@ def main() -> int:
                 raise AssertionError(f"{kind} template has no SaveVideo node")
             assert_no_banned_classes(summary)
         service = StudioService(cfg)
-        service.comfy = FakeComfy()  # type: ignore[assignment]
+        fake_comfy = FakeComfy()
+        service.pool = FakePool(fake_comfy)  # type: ignore[assignment]
         t2 = service.submit({"kind": "t2va", "profile": "balanced-r2-a5000", "prompt": "mock prompt with sound", "seed": "42"}, {})
         t2_done = service.refresh(t2["run_id"])
         if t2_done["status"] != "completed" or not t2_done["artifacts"]:

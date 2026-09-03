@@ -1,9 +1,31 @@
 {
   "schema_version": 1,
   "profiles": {
+    "draft-r4-a5000": {
+      "label": "Draft — R4 quick iteration candidate",
+      "description": "R4 candidate for quicker iteration on A5000. Uses fewer sigma points than Balanced; target-host quality must be judged from R4 evidence and is not reference/lossless.",
+      "width": 864,
+      "height": 480,
+      "aspect_ratio": "16:9",
+      "duration_seconds": 5.0,
+      "fps": 24,
+      "expected_frame_count": 124,
+      "sigma_points": 9,
+      "sampler_mode": "res_multistep",
+      "video_shift": 12.0,
+      "audio_shift": 3.0,
+      "accel": "off",
+      "cache_dit_rdt": 0.12,
+      "cache_dit_mc": 2,
+      "cache_dit_warmup": 4,
+      "velocity_stride": 4,
+      "allow_accel_with_res_multistep": false,
+      "dtype": "auto",
+      "disclosure": "Uses pruned INT8 ConvRot DiT and quantized Qwen3-VL text encoder with fewer sampling points; approximate/fast tradeoff, not lossless/reference quality."
+    },
     "balanced-r2-a5000": {
-      "label": "Balanced — R2 A5000 proven route",
-      "description": "R2 accepted single A5000 ComfyUI/RH MiniMax-H3 route. This is product evidence, not final MVP performance threshold.",
+      "label": "Balanced — R2/R3 A5000 proven route",
+      "description": "R2 accepted single A5000 ComfyUI/RH MiniMax-H3 route and R3 product route. R4 records concurrent throughput separately.",
       "width": 864,
       "height": 480,
       "aspect_ratio": "16:9",
@@ -22,6 +44,28 @@
       "allow_accel_with_res_multistep": false,
       "dtype": "auto",
       "disclosure": "Uses pruned INT8 ConvRot DiT and quantized Qwen3-VL text encoder; not presented as lossless/reference quality."
+    },
+    "final-r4-a5000": {
+      "label": "Final — R4 higher-step candidate",
+      "description": "R4 candidate for higher-quality output on A5000. Uses more sigma points than Balanced at the same MVP geometry; it is still quantized/pruned and not a lossless/reference route.",
+      "width": 864,
+      "height": 480,
+      "aspect_ratio": "16:9",
+      "duration_seconds": 5.0,
+      "fps": 24,
+      "expected_frame_count": 124,
+      "sigma_points": 25,
+      "sampler_mode": "res_multistep",
+      "video_shift": 12.0,
+      "audio_shift": 3.0,
+      "accel": "off",
+      "cache_dit_rdt": 0.12,
+      "cache_dit_mc": 2,
+      "cache_dit_warmup": 4,
+      "velocity_stride": 4,
+      "allow_accel_with_res_multistep": false,
+      "dtype": "auto",
+      "disclosure": "Uses pruned INT8 ConvRot DiT and quantized Qwen3-VL text encoder with more sampling points; higher-step quantized output, not lossless/reference quality."
     }
   },
   "default_profile": "balanced-r2-a5000"
