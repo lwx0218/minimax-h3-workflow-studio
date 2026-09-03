@@ -1,5 +1,17 @@
 # MiniMax H3 Studio 驾驭手册
 
+## 文档语言约定
+
+面向 Owner 的聊天总结、交付说明、状态报告和控制门提示默认使用中文。治理文档新增或实质更新默认使用中文；文件名、命令、代码标识、协议字段和必要原文引用可保留英文。
+
+## 默认治理模式
+
+默认先走 native Pi `simple` path：理解请求、必要时少量澄清、执行 bounded change、运行相称验证、用中文总结。只有 Owner 明确批准时，才启用 fixed Round、Independent Review、session handoff 或 formal acceptance gate。
+
+`.pi/` 是 capability layer，不是 policy authority；extension、skills、prompt templates 的存在不会自动激活 formal workflow。历史 operations 记录只作为事实证据，不自动恢复旧流程。
+
+当前已批准的 R1–R4 产品 checkpoint 仍按 rebaseline plan 执行；其他小任务不要因为跨文件、历史 evidence 或治理脚手架存在而自动升级为 fixed Round。
+
 ## 当前基线
 
 - Baseline Reset：`accepted`；checkpoint commit 与 post-commit verify 已成功
@@ -49,7 +61,9 @@ DoR -> Implement -> Automated Verify -> Risk-Proportional Review
 -> Work Log/Ledger candidate -> Checkpoint Commit -> Post-Commit Verify
 ```
 
-Class A source-of-truth、runtime、GPU safety、license 和 concurrency 变化需要独立只读 Review。Review artifact 由 Builder 写入 `operations/reviews/`；P0/P1 必须留在当前 checkpoint 修复，P2 必须记录 disposition。
+Class A source-of-truth、runtime、GPU safety、license 和 concurrency 变化在对应批准 checkpoint/formal task 中需要独立只读 Review。Review artifact 由 Builder 写入 `operations/reviews/`；P0/P1 必须留在当前 checkpoint 修复，P2 必须记录 disposition。
+
+Independent Review 必须区分 candidate scope、context scope 与 environment / dirty-worktree scope。进入 review bundle 不等于进入 candidate scope；Git changed/untracked paths 不自动进入当前产品 Round / task 的验收范围。`.pi/` / harness / extension / skill / prompt / settings 问题默认记录为 governance maintenance issue 或 review limitation，不作为产品 candidate P1 自动修。
 
 ## R1 历史事实
 

@@ -22,6 +22,12 @@ MiniMax H3 Studio 是一个面向单机单用户的本地 H3 音视频生成产�
 - Backend/API 生成只是技术证据；MVP 必须由用户从产品入口提交、观察执行并取得可播放的带立体声音频视频。
 - 模型权重、运行时、缓存、日志、数据库和媒体不进入 Git；项目配置通过未提交的 `.env.local` 承接。
 
+## 治理模式
+
+本项目默认采用 native Pi `simple` path：理解请求、必要澄清、执行 bounded change、运行相称验证并用中文总结。已批准的 R1–R4 产品 checkpoint 仍按 rebaseline plan 执行；其他任务不会仅因历史 Plan/evidence、`.pi/` capability、extension、skills 或 prompts 存在而自动升级为 fixed Round、handoff、Independent Review 或 formal gate。
+
+`.pi/` 是 capability layer，不是 policy authority；`.pi/` / harness / extension / skill / prompt / settings 问题默认记录为 governance maintenance issue 或 review limitation，不作为产品 candidate P1 自动修复。
+
 ## Source of Truth
 
 按优先级阅读：

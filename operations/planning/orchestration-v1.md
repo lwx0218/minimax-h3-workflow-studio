@@ -4,7 +4,7 @@
 
 This document tells Pi how to execute the rebaselined plan without drifting back to the former independent-frontend architecture or repeating R1's over-governed experiment loop. It controls checkpoint sequencing, evidence, review depth, commits, handoffs, and Owner stops.
 
-The delivery plan defines **what** is built. This orchestration defines **how** Pi moves it safely from one accepted checkpoint to the next.
+The delivery plan defines **what** is built. This orchestration defines **how** Pi moves it safely from one accepted checkpoint to the next. Outside an Owner-approved checkpoint/formal task, Pi uses the project `simple` default: bounded change, proportional validation, concise Chinese summary, and no automatic fixed Round, handoff, Independent Review, or formal gate.
 
 ## 2. Governing Inputs
 
@@ -123,7 +123,7 @@ A generated MP4 is not sufficient. Real H3 probes must validate terminal status,
 
 ### Step 5 — Risk-Proportional Review
 
-Run the review class defined in Section 7. P0 and P1 findings stay inside the checkpoint and must be fixed and regression-verified. Do not invent extra checkpoints or substitute process gates for evidence.
+For an Owner-approved checkpoint or formal task, run the review class defined in Section 7. For ordinary simple/direct tasks, use proportional self-review and mechanical validation unless the Owner explicitly asks for formal review. P0 and P1 findings stay inside the current task/checkpoint and must be fixed and regression-verified. Do not invent extra checkpoints or substitute process gates for evidence.
 
 ### Step 6 — Candidate Closeout
 
@@ -159,6 +159,20 @@ The former process applied heavyweight review to nearly every action and produce
 | C — Routine | documentation, labels, styles, non-executable templates, operator copy | self-review plus mechanical checks; independent review only when source-of-truth meaning changes |
 
 Baseline Reset is Class A because it changes the project's source of truth. Ordinary visual polish is not Class A.
+
+### Review Scope Standard
+
+Independent Review evaluates only whether the current active task / Round candidate satisfies the approved contract. The review bundle must separate:
+
+- `candidate scope`：当前任务 / Round 请求验收的实际变更；reviewer may assign P0/P1/P2 to this scope.
+- `context scope`：只读合同、Plan、spec、source、tests、baseline，用于判断 candidate；entering context does not make a file part of candidate scope.
+- `environment / dirty-worktree scope`：Git dirty/untracked paths、pre-existing local files、tool directories and environment residue；used only for transparency, immutability evidence and contamination-risk assessment, not automatic candidate inclusion.
+
+Entering a review bundle does not equal entering candidate scope. Git changed/untracked paths do not automatically enter the current product Round / task acceptance scope.
+
+If a reviewer finds an issue outside the current candidate, classify it as exactly one of：当前产品阻塞、review evidence limitation、governance maintenance issue、非当前 task / Round backlog。Governance / harness / `.pi/` issues must not be treated as product candidate P1 fixes unless they directly make the required gate impossible.
+
+`.pi/`、harness-flow、extensions、skills、prompts、settings、session handoff/review tooling are governance-layer files. Pi must not modify them during product development without explicit Owner authorization for a separate governance maintenance task. Tooling problems are recorded as governance maintenance issues or review limitations; do not auto-fix harness, and do not repeatedly reload or re-review merely to repair governance tooling.
 
 Review artifacts should contain findings and decisions, not reproduce entire prompts, command transcripts, or unchanged documents.
 
@@ -230,6 +244,8 @@ Scheduling may be supplied by accepted SwarmUI behavior or project-owned thin co
 - Ledger `accepted` status is effective only at the committed HEAD that contains its evidence.
 - Evidence summaries link to retained files; avoid committing redundant copies of raw logs.
 - If the worktree contains unrelated user changes, work around and preserve them.
+- Treat dirty/untracked or pre-existing local files as environment scope unless the approved task explicitly includes them.
+- Do not modify `.pi/`, harness-flow, extensions, skills, prompts, settings, or handoff/review tooling as part of a product candidate; record blockers or limitations separately.
 
 ## 13. Owner Stop Conditions
 
