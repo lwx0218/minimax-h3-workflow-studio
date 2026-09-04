@@ -5,6 +5,7 @@
 
 # Python
 .venv/
+.venv-*/
 venv/
 __pycache__/
 *.py[cod]
@@ -12,7 +13,8 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 
-# Project runtime state: keep only its documentation
+# Project runtime state: generated media, caches, logs and DBs stay local only.
+# Keep only its documentation in Git.
 /var/*
 !/var/README.md
 

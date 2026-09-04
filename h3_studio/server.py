@@ -22,7 +22,7 @@ from typing import Any
 
 from .assets import validate_assets
 from .comfy import ComfyError, open_url
-from .config import StudioConfig
+from .config import StudioConfig, apply_project_local_env
 from .service import StudioService
 from .workers import NoWorkerAvailable
 
@@ -336,6 +336,7 @@ def _raise_interrupt(_signum: int, _frame: Any) -> None:
 def run_server(config: StudioConfig | None = None) -> None:
     signal.signal(signal.SIGTERM, _raise_interrupt)
     cfg = config or StudioConfig.from_env()
+    apply_project_local_env(cfg.repo_root)
     service = StudioService(cfg)
     service.start()
     Handler.service = service

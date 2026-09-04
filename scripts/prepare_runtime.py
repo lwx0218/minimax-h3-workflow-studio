@@ -16,7 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from h3_studio.assets import validate_assets  # noqa: E402
-from h3_studio.config import StudioConfig  # noqa: E402
+from h3_studio.config import StudioConfig, apply_project_local_env  # noqa: E402
 
 
 def run(cmd: list[str], *, cwd: Path | None = None) -> None:
@@ -69,6 +69,7 @@ def main() -> int:
 
     repo = args.repo.resolve()
     os.chdir(repo)
+    apply_project_local_env(repo)
     cfg = StudioConfig.from_env(repo)
     lock = cfg.runtime_lock
     model_root_value = os.environ.get(str(cfg.asset_manifest.get("asset_root_env", "H3_MODEL_ROOT")))

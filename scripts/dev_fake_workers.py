@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
-import tempfile
 import threading
 import time
 from http.server import ThreadingHTTPServer
@@ -22,7 +22,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "tests"))
 
 from fake_comfy import FakeComfyServer  # noqa: E402
-from h3_studio.config import StudioConfig  # noqa: E402
+from h3_studio.config import StudioConfig, apply_project_local_env, project_local_env  # noqa: E402
 from h3_studio.server import Handler  # noqa: E402
 from h3_studio.service import StudioService  # noqa: E402
 
@@ -36,8 +36,10 @@ def main() -> int:
     ap.add_argument("--finish-after", type=float, default=20.0)
     args = ap.parse_args()
 
+    apply_project_local_env(ROOT)
     fakes = [FakeComfyServer().start() for _ in range(args.workers)]
-    tmp = tempfile.mkdtemp(prefix="h3-studio-dev-")
+    tmp = ROOT / "var" / "tmp" / "dev-fake-workers" / f"{time.strftime('%Y%m%d-%H%M%S')}-{os.getpid()}"
+    tmp.mkdir(parents=True, exist_ok=False)
     pool = {
         "safe_concurrent_runs": args.cap,
         "host_ram_abort_gib": 9999,
@@ -45,9 +47,10 @@ def main() -> int:
         "health_interval_s": 2,
         "workers": [{"id": f"worker-gpu{i}", "gpu": str(i), "port": f.port} for i, f in enumerate(fakes)],
     }
-    pool_path = Path(tmp) / "pool.json"
+    pool_path = tmp / "pool.json"
     pool_path.write_text(json.dumps(pool), encoding="utf-8")
-    cfg = StudioConfig.from_env(ROOT, env={"H3_STUDIO_DATA": tmp, "H3_WORKER_POOL_CONFIG": str(pool_path), "H3_STUDIO_HOST": args.host, "H3_STUDIO_PORT": str(args.port)})
+    cfg_env = project_local_env(ROOT, {**os.environ, "H3_STUDIO_DATA": str(tmp), "H3_WORKER_POOL_CONFIG": str(pool_path), "H3_STUDIO_HOST": args.host, "H3_STUDIO_PORT": str(args.port)})
+    cfg = StudioConfig.from_env(ROOT, env=cfg_env)
     service = StudioService(cfg, poll_interval_s=1.0)
     service.start()
 

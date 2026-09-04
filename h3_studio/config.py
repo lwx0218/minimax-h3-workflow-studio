@@ -19,6 +19,46 @@ def _resolve(root: Path, value: str) -> Path:
     return (path if path.is_absolute() else root / path).resolve()
 
 
+def project_local_env(repo_root: Path, base_env: dict[str, str] | None = None) -> dict[str, str]:
+    """Return an env that confines runtime-generated files to this repo's var/ tree.
+
+    Model roots and already-installed Python packages may live outside the repo, but
+    caches, temp files, bytecode, user state, logs, media and downloaded artifacts
+    should not spill into the operator's home directory or other host paths.
+    """
+    root = repo_root.resolve()
+    env = dict(os.environ if base_env is None else base_env)
+    local_paths = {
+        "HOME": root / "var" / "home",
+        "HF_HOME": root / "var" / "cache" / "huggingface",
+        "HF_HUB_CACHE": root / "var" / "cache" / "huggingface" / "hub",
+        "TRANSFORMERS_CACHE": root / "var" / "cache" / "huggingface" / "transformers",
+        "TORCH_HOME": root / "var" / "cache" / "torch",
+        "TORCH_EXTENSIONS_DIR": root / "var" / "cache" / "torch_extensions",
+        "XDG_CACHE_HOME": root / "var" / "cache" / "xdg",
+        "XDG_CONFIG_HOME": root / "var" / "config",
+        "XDG_DATA_HOME": root / "var" / "data",
+        "XDG_STATE_HOME": root / "var" / "state",
+        "TMPDIR": root / "var" / "tmp",
+        "TEMP": root / "var" / "tmp",
+        "TMP": root / "var" / "tmp",
+        "PIP_CACHE_DIR": root / "var" / "cache" / "pip",
+        "PYTHONPYCACHEPREFIX": root / "var" / "cache" / "pycache",
+        "CUDA_CACHE_PATH": root / "var" / "cache" / "cuda",
+        "MPLCONFIGDIR": root / "var" / "cache" / "matplotlib",
+        "NUMBA_CACHE_DIR": root / "var" / "cache" / "numba",
+    }
+    for path in local_paths.values():
+        path.mkdir(parents=True, exist_ok=True)
+    env.update({key: str(path) for key, path in local_paths.items()})
+    env.setdefault("PYTHONDONTWRITEBYTECODE", "1")
+    return env
+
+
+def apply_project_local_env(repo_root: Path) -> None:
+    os.environ.update(project_local_env(repo_root))
+
+
 @dataclass(frozen=True)
 class StudioConfig:
     repo_root: Path

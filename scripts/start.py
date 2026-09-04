@@ -24,7 +24,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from h3_studio.comfy import ComfyClient  # noqa: E402
-from h3_studio.config import StudioConfig  # noqa: E402
+from h3_studio.config import StudioConfig, apply_project_local_env, project_local_env  # noqa: E402
 from h3_studio.workers import WorkerPool, WorkerSpec, host_memory_status  # noqa: E402
 
 
@@ -50,12 +50,13 @@ def terminate(proc: subprocess.Popen[Any], timeout_s: int = 25) -> None:
 def worker_command(py: Path, comfy: Path, worker: WorkerSpec, repo: Path, extra: list[str]) -> tuple[list[str], dict[str, str], Path]:
     outputs = repo / "var" / "outputs" / worker.id
     tmp = repo / "var" / "tmp" / worker.id
+    inputs = repo / "var" / "inputs" / worker.id
+    user = repo / "var" / "user" / worker.id
     log_dir = repo / "var" / "logs"
-    for path in (outputs, tmp, log_dir):
+    for path in (outputs, tmp, inputs, user, log_dir):
         path.mkdir(parents=True, exist_ok=True)
-    env = os.environ.copy()
+    env = project_local_env(repo)
     env["CUDA_VISIBLE_DEVICES"] = worker.gpu
-    env.setdefault("HF_HOME", str(repo / "var" / "cache" / "huggingface"))
     env.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
     cmd = [
         str(py), str(comfy / "main.py"),
@@ -63,8 +64,10 @@ def worker_command(py: Path, comfy: Path, worker: WorkerSpec, repo: Path, extra:
         "--port", str(worker.port),
         "--disable-auto-launch",
         "--cache-none",
-        "--output-directory", str(outputs),
-        "--temp-directory", str(tmp),
+        "--output-directory", str(outputs.resolve()),
+        "--temp-directory", str(tmp.resolve()),
+        "--input-directory", str(inputs.resolve()),
+        "--user-directory", str(user.resolve()),
         *extra,
     ]
     return cmd, env, log_dir / f"comfyui-{worker.id}.log"
@@ -83,6 +86,7 @@ def main() -> int:
 
     repo = args.repo.resolve()
     os.chdir(repo)
+    apply_project_local_env(repo)
     cfg = StudioConfig.from_env(repo)
     comfy = cfg.runtime_root / "ComfyUI"
     py = cfg.runtime_root / "venv" / "bin" / "python"
@@ -140,7 +144,7 @@ def main() -> int:
             return 0
 
         studio_log = (logs / "h3-studio.log").open("a", encoding="utf-8")
-        studio = subprocess.Popen([sys.executable, "-m", "h3_studio.server"], cwd=str(repo), env=os.environ.copy(), stdout=studio_log, stderr=subprocess.STDOUT, text=True)
+        studio = subprocess.Popen([sys.executable, "-m", "h3_studio.server"], cwd=str(repo), env=project_local_env(repo), stdout=studio_log, stderr=subprocess.STDOUT, text=True)
         (logs / "h3-studio.pid").write_text(str(studio.pid), encoding="utf-8")
         print(f"H3 Studio: http://{cfg.studio_host}:{cfg.studio_port}/   (canvas: /canvas/<worker-id>/)", flush=True)
         exit_code = studio.wait()
