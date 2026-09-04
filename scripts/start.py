@@ -47,6 +47,56 @@ def terminate(proc: subprocess.Popen[Any], timeout_s: int = 25) -> None:
         proc.wait(timeout=timeout_s)
 
 
+PROJECT_PACKAGE_OVERRIDE_GLOBS = (
+    # Keep the CUDA stack proven for this project ahead of the fallback conda env.
+    "torch", "torch-*", "torchgen", "torchvision", "torchvision-*", "torchvision.libs",
+    "torchaudio", "torchaudio-*", "triton", "triton-*", "triton_kernels",
+    "nvidia", "nvidia*", "comfy_kitchen", "comfy_kitchen-*",
+    "torchao", "torchao-*", "torchcodec", "torchcodec-*", "torch_memory_saver*",
+    "torch_c_dlpack_ext", "torch_c_dlpack_ext-*",
+)
+
+
+def _python_purelib(py: Path) -> Path:
+    out = subprocess.check_output([str(py), "-c", "import sysconfig; print(sysconfig.get_path('purelib'))"], text=True)
+    return Path(out.strip()).resolve()
+
+
+def enable_site_package_fallback(runtime_venv: Path) -> None:
+    cfg = runtime_venv / "pyvenv.cfg"
+    if not cfg.exists():
+        return
+    text = cfg.read_text(encoding="utf-8")
+    if "include-system-site-packages = false" in text:
+        cfg.write_text(text.replace("include-system-site-packages = false", "include-system-site-packages = true"), encoding="utf-8")
+    elif "include-system-site-packages" not in text:
+        cfg.write_text(text.rstrip() + "\ninclude-system-site-packages = true\n", encoding="utf-8")
+
+
+def link_project_package_overrides(repo: Path, runtime_py: Path) -> list[str]:
+    """Prefer selected packages from ignored .venv-h3, then fall back to the base env.
+
+    The runtime venv is ignored and may be recreated.  This restores the intended
+    local precedence without downloading: .venv-h3 supplies the project CUDA stack,
+    while the venv's system-site fallback can satisfy missing packages from dsbi.
+    """
+    project_py = repo / ".venv-h3" / "bin" / "python"
+    if not project_py.exists():
+        return []
+    src_site = _python_purelib(project_py)
+    dst_site = _python_purelib(runtime_py)
+    dst_site.mkdir(parents=True, exist_ok=True)
+    linked: list[str] = []
+    for pattern in PROJECT_PACKAGE_OVERRIDE_GLOBS:
+        for src in src_site.glob(pattern):
+            dst = dst_site / src.name
+            if dst.exists() or dst.is_symlink():
+                continue
+            dst.symlink_to(src, target_is_directory=src.is_dir())
+            linked.append(src.name)
+    return linked
+
+
 def worker_command(py: Path, comfy: Path, worker: WorkerSpec, repo: Path, extra: list[str]) -> tuple[list[str], dict[str, str], Path]:
     outputs = repo / "var" / "outputs" / worker.id
     tmp = repo / "var" / "tmp" / worker.id
@@ -92,6 +142,11 @@ def main() -> int:
     py = cfg.runtime_root / "venv" / "bin" / "python"
     if not args.no_workers and (not (comfy / "main.py").exists() or not py.exists()):
         raise SystemExit(f"Runtime not prepared under {cfg.runtime_root}. Run scripts/prepare_runtime.py first (or set H3_RUNTIME_ROOT).")
+    if py.exists():
+        enable_site_package_fallback(cfg.runtime_root / "venv")
+        linked = link_project_package_overrides(repo, py)
+        if linked:
+            print(f"Linked project package overrides from .venv-h3: {', '.join(sorted(linked))}", flush=True)
 
     pool = WorkerPool(cfg.worker_pool)
     wanted = {w.strip() for w in args.workers.split(",") if w.strip()}
