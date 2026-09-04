@@ -336,6 +336,8 @@ class HttpTests(unittest.TestCase):
         fake.state.finish(rec["prompt_id"])
         done = json.loads(self.get(f"/api/runs/{rec['run_id']}").read())
         url = done["artifacts"][0]["download_url"]
+        listed = json.loads(self.get("/api/runs").read())["runs"][0]
+        self.assertEqual(listed["artifacts"][0]["download_url"], url)
         with self.get(url) as resp:
             self.assertEqual(resp.status, 200)
             self.assertEqual(resp.headers["Content-Type"], "video/mp4")

@@ -138,8 +138,13 @@ function watch(run) {
 }
 function unwatch(id) { if (sockets[id]) { sockets[id].close(); delete sockets[id]; } }
 
+function artifactUrl(r, a) {
+  return a.download_url || `/api/runs/${encodeURIComponent(r.run_id)}/artifacts/${encodeURIComponent(a.artifact_id)}/file`;
+}
+
 function signature(r) {
-  return [r.status, r.worker, r.queue_position, r.queue_reason, r.failure_reason, r.artifacts.length, r.timing && r.timing.created_to_completed_s].join('|');
+  const artifactSig = (r.artifacts || []).map(a => `${a.artifact_id}:${a.filename}:${artifactUrl(r, a)}`).join(',');
+  return [r.status, r.worker, r.queue_position, r.queue_reason, r.failure_reason, r.artifacts.length, artifactSig, r.timing && r.timing.created_to_completed_s].join('|');
 }
 
 function renderRun(r) {
@@ -151,7 +156,7 @@ function renderRun(r) {
     ${r.status === 'running' ? `<progress data-run="${esc(r.run_id)}" value="${p ? p.value : 0}" max="${p ? p.max : 100}"></progress><span class="muted" data-steps="${esc(r.run_id)}">${p ? p.value + '/' + p.max : '等待进度…'}</span>` : ''}
     ${r.failure_reason ? `<div class="muted">${esc(r.failure_reason)}</div>` : ''}
     ${r.timing && r.timing.created_to_completed_s != null ? `<div class="muted">耗时 ${esc(r.timing.created_to_completed_s)}s</div>` : ''}
-    ${r.artifacts.map(a => `<video controls preload="metadata" src="${esc(a.download_url)}"></video><div class="muted"><a href="${esc(a.download_url)}" download>${esc(a.filename)}</a></div>`).join('')}
+    ${r.artifacts.map(a => { const url = artifactUrl(r, a); return `<video controls preload="metadata" src="${esc(url)}"></video><div class="muted"><a href="${esc(url)}" download>${esc(a.filename)}</a></div>`; }).join('')}
     ${(isActive || r.status === 'pending') ? `<div class="actions"><button class="secondary" data-cancel="${esc(r.run_id)}">取消</button></div>` : ''}`;
 }
 

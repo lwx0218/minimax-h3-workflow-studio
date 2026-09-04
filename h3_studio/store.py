@@ -119,7 +119,11 @@ def summary(record: dict[str, Any]) -> dict[str, Any]:
         "progress": record.get("progress"),
         "failure_reason": record.get("failure_reason"),
         "artifacts": [
-            {"artifact_id": a.get("artifact_id"), "filename": a.get("filename"), "download_url": a.get("download_url")}
+            {
+                "artifact_id": a.get("artifact_id"),
+                "filename": a.get("filename"),
+                "download_url": a.get("download_url") or f"/api/runs/{record.get('run_id')}/artifacts/{a.get('artifact_id')}/file",
+            }
             for a in record.get("artifacts", [])
         ],
         "timing": record.get("timing"),
