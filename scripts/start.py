@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
-"""Start the ComfyUI worker pool and the Studio.
+"""Start one ComfyUI + Director on one visible GPU (loopback by default).
 
-    python3 scripts/start.py                       # all workers + Studio
-    python3 scripts/start.py --workers worker-gpu0 # one worker + Studio
-    python3 scripts/start.py --no-workers          # Studio only, workers already running
-    python3 scripts/start.py --skip-studio         # workers only
+    python3 scripts/start.py
+    python3 scripts/start.py --legacy-studio --workers worker-gpu0
 
-Workers bind worker_host from config/worker-pool.json (default 127.0.0.1) and are
-reached through the Studio's /canvas/<worker-id>/ proxy. Ctrl-C stops everything.
+Legacy worker/Studio options require --legacy-studio; never selected implicitly.
 """
 from __future__ import annotations
 
 import argparse
+import ipaddress
+import urllib.request
 import json
 import os
 import signal
@@ -47,56 +46,6 @@ def terminate(proc: subprocess.Popen[Any], timeout_s: int = 25) -> None:
         proc.wait(timeout=timeout_s)
 
 
-PROJECT_PACKAGE_OVERRIDE_GLOBS = (
-    # Keep the CUDA stack proven for this project ahead of the fallback conda env.
-    "torch", "torch-*", "torchgen", "torchvision", "torchvision-*", "torchvision.libs",
-    "torchaudio", "torchaudio-*", "triton", "triton-*", "triton_kernels",
-    "nvidia", "nvidia*", "comfy_kitchen", "comfy_kitchen-*",
-    "torchao", "torchao-*", "torchcodec", "torchcodec-*", "torch_memory_saver*",
-    "torch_c_dlpack_ext", "torch_c_dlpack_ext-*",
-)
-
-
-def _python_purelib(py: Path) -> Path:
-    out = subprocess.check_output([str(py), "-c", "import sysconfig; print(sysconfig.get_path('purelib'))"], text=True)
-    return Path(out.strip()).resolve()
-
-
-def enable_site_package_fallback(runtime_venv: Path) -> None:
-    cfg = runtime_venv / "pyvenv.cfg"
-    if not cfg.exists():
-        return
-    text = cfg.read_text(encoding="utf-8")
-    if "include-system-site-packages = false" in text:
-        cfg.write_text(text.replace("include-system-site-packages = false", "include-system-site-packages = true"), encoding="utf-8")
-    elif "include-system-site-packages" not in text:
-        cfg.write_text(text.rstrip() + "\ninclude-system-site-packages = true\n", encoding="utf-8")
-
-
-def link_project_package_overrides(repo: Path, runtime_py: Path) -> list[str]:
-    """Prefer selected packages from ignored .venv-h3, then fall back to the base env.
-
-    The runtime venv is ignored and may be recreated.  This restores the intended
-    local precedence without downloading: .venv-h3 supplies the project CUDA stack,
-    while the venv's system-site fallback can satisfy missing packages from dsbi.
-    """
-    project_py = repo / ".venv-h3" / "bin" / "python"
-    if not project_py.exists():
-        return []
-    src_site = _python_purelib(project_py)
-    dst_site = _python_purelib(runtime_py)
-    dst_site.mkdir(parents=True, exist_ok=True)
-    linked: list[str] = []
-    for pattern in PROJECT_PACKAGE_OVERRIDE_GLOBS:
-        for src in src_site.glob(pattern):
-            dst = dst_site / src.name
-            if dst.exists() or dst.is_symlink():
-                continue
-            dst.symlink_to(src, target_is_directory=src.is_dir())
-            linked.append(src.name)
-    return linked
-
-
 def worker_command(py: Path, comfy: Path, worker: WorkerSpec, repo: Path, extra: list[str]) -> tuple[list[str], dict[str, str], Path]:
     outputs = repo / "var" / "outputs" / worker.id
     tmp = repo / "var" / "tmp" / worker.id
@@ -107,9 +56,12 @@ def worker_command(py: Path, comfy: Path, worker: WorkerSpec, repo: Path, extra:
         path.mkdir(parents=True, exist_ok=True)
     env = project_local_env(repo)
     env["CUDA_VISIBLE_DEVICES"] = worker.gpu
+    env["HF_HUB_OFFLINE"] = "1"
+    env["TRANSFORMERS_OFFLINE"] = "1"
+    env["HF_DATASETS_OFFLINE"] = "1"
     env.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
     cmd = [
-        str(py), str(comfy / "main.py"),
+        str(py), "-E", "-s", str(comfy / "main.py"),
         "--listen", worker.host,
         "--port", str(worker.port),
         "--disable-auto-launch",
@@ -123,10 +75,81 @@ def worker_command(py: Path, comfy: Path, worker: WorkerSpec, repo: Path, extra:
     return cmd, env, log_dir / f"comfyui-{worker.id}.log"
 
 
+def director_host() -> str:
+    """Accept one explicit private/loopback IPv4, never a URL or wildcard bind."""
+    try:
+        host = ipaddress.IPv4Address(os.environ.get("H3_DIRECTOR_HOST", "127.0.0.1"))
+    except ipaddress.AddressValueError as exc:
+        raise SystemExit("H3_DIRECTOR_HOST must be one private/loopback IPv4 address") from exc
+    if not host.is_private or host.is_unspecified or host.is_multicast or host.is_reserved:
+        raise SystemExit("H3_DIRECTOR_HOST must be one private/loopback IPv4 address, not a wildcard")
+    return str(host)
+
+
+def start_director(repo: Path, comfy: Path, wait_ready: int, extra: list[str]) -> int:
+    """One child, one configured bind address, single GPU, bounded readiness."""
+    from scripts.prepare_runtime import project_python
+
+    py = project_python(repo)
+    if not (comfy / "main.py").is_file():
+        raise SystemExit("Run scripts/prepare_runtime.py first")
+    gpu = os.environ.get("H3_GPU", "0")
+    if not gpu.isdecimal():
+        raise SystemExit("H3_GPU must be one GPU index")
+    if any(arg not in {"--cpu-vae", "--lowvram", "--disable-dynamic-vram"} for arg in extra):
+        raise SystemExit("Director accepts only --cpu-vae, --lowvram, --disable-dynamic-vram")
+    port = int(os.environ.get("H3_DIRECTOR_PORT", "30210"))
+    worker = WorkerSpec("director", gpu, director_host(), port)
+    # Refuse an occupied port rather than mistaking someone else's server for ready.
+    import socket
+    with socket.socket() as sock:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind((worker.host, port))
+    cmd, env, log_path = worker_command(py, comfy, worker, repo, [
+        "--disable-all-custom-nodes", "--whitelist-custom-nodes", "ComfyUI_MiniMaxH3_Director", *extra,
+    ])
+    pid_path = repo / "var/logs/comfyui-director.pid"
+    def stop(_signum: int, _frame: Any) -> None:
+        raise KeyboardInterrupt
+    signal.signal(signal.SIGTERM, stop)
+    signal.signal(signal.SIGINT, stop)
+    proc = None
+    try:
+        with log_path.open("a", encoding="utf-8") as log:
+            proc = subprocess.Popen(cmd, cwd=comfy, env=env, stdout=log, stderr=subprocess.STDOUT)
+        pid_path.write_text(str(proc.pid), encoding="utf-8")
+        # This probes our own bound service, never an environment HTTP proxy.
+        local_http = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        deadline = time.monotonic() + wait_ready
+        while time.monotonic() < deadline:
+            if proc.poll() is not None:
+                raise RuntimeError(f"ComfyUI exited {proc.returncode}; see {log_path}")
+            try:
+                with local_http.open(worker.url + "/object_info", timeout=2) as response:
+                    nodes = json.load(response)
+                required = {"MiniMaxH3Director", "UNETLoader", "CLIPLoader", "VAELoader", "CreateVideo", "SaveVideo"}
+                if not required.issubset(nodes):
+                    raise RuntimeError(f"Required Director nodes missing: {sorted(required - nodes.keys())}")
+                break
+            except OSError:
+                time.sleep(1)
+        else:
+            raise TimeoutError(f"ComfyUI readiness timeout; see {log_path}")
+        print(f"Director ready: {worker.url}/  PID {proc.pid} GPU {gpu}", flush=True)
+        return proc.wait()
+    except KeyboardInterrupt:
+        return 130
+    finally:
+        if proc is not None:
+            terminate(proc)
+            pid_path.unlink(missing_ok=True)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[1])
-    ap.add_argument("--workers", default="all", help="comma-separated worker ids, or 'all'")
+    ap.add_argument("--legacy-studio", action="store_true", help="explicitly opt into the old Studio route")
+    ap.add_argument("--workers", default="worker-gpu0", help="legacy only: comma-separated worker ids, or 'all'")
     ap.add_argument("--no-workers", action="store_true", help="do not launch ComfyUI; use already running workers")
     ap.add_argument("--skip-studio", action="store_true", help="launch and wait for workers only")
     ap.add_argument("--wait-ready", type=int, default=900, help="seconds to wait for each worker")
@@ -138,15 +161,14 @@ def main() -> int:
     os.chdir(repo)
     apply_project_local_env(repo)
     cfg = StudioConfig.from_env(repo)
+    if not args.legacy_studio:
+        if args.no_workers or args.skip_studio or args.workers != "worker-gpu0":
+            ap.error("worker/Studio options require --legacy-studio")
+        return start_director(repo, cfg.runtime_root / "ComfyUI", args.wait_ready, args.comfy_arg)
     comfy = cfg.runtime_root / "ComfyUI"
-    py = cfg.runtime_root / "venv" / "bin" / "python"
+    py = repo / ".venv" / "bin" / "python"
     if not args.no_workers and (not (comfy / "main.py").exists() or not py.exists()):
-        raise SystemExit(f"Runtime not prepared under {cfg.runtime_root}. Run scripts/prepare_runtime.py first (or set H3_RUNTIME_ROOT).")
-    if py.exists():
-        enable_site_package_fallback(cfg.runtime_root / "venv")
-        linked = link_project_package_overrides(repo, py)
-        if linked:
-            print(f"Linked project package overrides from .venv-h3: {', '.join(sorted(linked))}", flush=True)
+        raise SystemExit(f"ComfyUI missing under {cfg.runtime_root} or project .venv missing; prepare an isolated project environment first.")
 
     pool = WorkerPool(cfg.worker_pool)
     wanted = {w.strip() for w in args.workers.split(",") if w.strip()}

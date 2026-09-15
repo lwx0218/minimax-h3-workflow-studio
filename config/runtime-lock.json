@@ -9,30 +9,37 @@
   },
   "custom_nodes": [
     {
-      "name": "ComfyUI_RH_MinMaxH3",
-      "repo": "https://github.com/HM-RunningHub/ComfyUI_RH_MinMaxH3.git",
-      "commit": "d6c5f7b0d4e03936ac4a9834be63ecc6b5637dad",
-      "purpose": "MiniMax-H3 T2VA/FL2VA nodes used by the current workflow templates"
+      "name": "ComfyUI_MiniMaxH3_Director",
+      "repo": "https://github.com/AIMixer/ComfyUI_MiniMaxH3_Director.git",
+      "commit": "52f8fb7b8d8eb6bebf33ebb534827efa8f95484c",
+      "purpose": "Native single-GPU AV timeline"
     }
   ],
   "python_stack": {
     "dependency_lock": "config/requirements-lock.txt",
     "python": "3.12",
-    "torch": "2.14.0+cu130",
-    "torchvision": "0.29.0+cu130",
-    "torchaudio": "2.11.0+cu130",
+    "torch": "2.11.0",
+    "torchvision": "0.26.0",
+    "torchaudio": "2.11.0",
     "comfy-kitchen": "0.2.31",
     "comfy-aimdo": "0.4.15",
-    "transformers": "5.8.1",
-    "accelerate": "1.14.0",
-    "av": "18.1.0"
+    "transformers": "5.12.1",
+    "av": "18.1.0",
+    "observed_module_builds": {
+      "torch": "2.11.0+cu130",
+      "torchvision": "0.26.0+cu130",
+      "torchaudio": "2.11.0+cu130",
+      "triton": "3.6.0",
+      "nccl": "2.28.9"
+    }
   },
   "network_defaults": {
     "studio_host": "127.0.0.1",
     "studio_port": 30210
   },
   "notes": [
-    "ComfyUI remains the authoritative graph, queue and execution engine.",
-    "The Studio only submits native ComfyUI API prompts and records Run/Artifact metadata."
+    "One native ComfyUI + pinned Director, one visible GPU; no Studio or multi-GPU plugin by default.",
+    "Local model derivatives only; model/tokenizer downloads prohibited.",
+    "Dependency list is observed metadata, not an installable CUDA wheel lock; installer disabled."
   ]
 }

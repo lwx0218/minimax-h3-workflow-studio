@@ -18,6 +18,7 @@ class FakeComfyState:
         self.prompts: dict[str, dict[str, Any]] = {}
         self.interrupts = 0
         self.uploads: list[str] = []
+        self.object_info = dict.fromkeys(("MiniMaxH3Director", "UNETLoader", "CLIPLoader", "VAELoader", "CreateVideo", "SaveVideo"), {})
         self.prompt_delay_s = 0.0          # slow down POST /prompt to exercise cancel-during-submit
         self.video = b"\x00\x00\x00\x1cftypisom" + bytes(range(256)) * 8
 
@@ -74,6 +75,8 @@ class FakeComfyHandler(BaseHTTPRequestHandler):
         st = self.state
         if parsed.path == "/system_stats":
             return self._json({"system": {"os": "fake"}, "devices": [{"name": "fake-gpu", "vram_total": 24 * 1024**3, "vram_free": 20 * 1024**3}]})
+        if parsed.path == "/object_info":
+            return self._json(st.object_info)
         if parsed.path == "/queue":
             with st.lock:
                 return self._json({"queue_running": [[0, st.running]] if st.running else [], "queue_pending": [[i + 1, p] for i, p in enumerate(st.pending)]})

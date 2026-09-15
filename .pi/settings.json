@@ -1,0 +1,20 @@
+{
+  "project_name": "minimax-h3-workflow",
+  "project_root": ".",
+  "instructions_file": "AGENTS.md",
+  "agents_doc": ".pi/agents/README.md",
+  "prompts": [
+    "prompt-templates"
+  ],
+  "skills": [
+    "skills"
+  ],
+  "enableSkillCommands": true,
+  "packages": [
+    "npm:@narumitw/pi-fleet",
+    "npm:pi-subagents",
+    "npm:@dietrichgebert/ponytail",
+    "npm:pi-web-access",
+    "npm:@blackbelt-technology/pi-dashboard-extension"
+  ]
+}
