@@ -40,6 +40,8 @@ class LauncherTests(unittest.TestCase):
             repo = Path(tmp)
             source = Path(__file__).resolve().parents[1]
             shutil.copytree(source / "config", repo / "config")
+            shutil.copytree(source / "comfy_extensions", repo / "comfy_extensions", symlinks=True)
+            shutil.copytree(source / "workflows/comfy-ui", repo / "workflows/comfy-ui")
             (repo / "config/requirements-lock.txt").write_text("")
             subprocess.run([sys.executable, "-m", "venv", str(repo / ".venv")], check=True, timeout=60)
             comfy = repo / "var/runtime/ComfyUI"
@@ -85,6 +87,7 @@ class LauncherTests(unittest.TestCase):
                     self.assertEqual(child['args'][child['args'].index('--listen')+1], '127.0.0.2')
                     self.assertIn('--disable-all-custom-nodes', child['args'])
                     self.assertIn('ComfyUI_MiniMaxH3_Director', child['args'])
+                    self.assertIn('H3_Director_Entry', child['args'])
                 finally:
                     proc.send_signal(signal.SIGTERM)
                     output, _ = proc.communicate(timeout=30)

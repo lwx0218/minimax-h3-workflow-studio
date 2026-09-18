@@ -97,10 +97,32 @@ def link_model(src: Path, dst: Path) -> None:
     dst.symlink_to(src.resolve())
 
 
+def prepare_code(repo: Path, comfy: Path, lock: dict) -> None:
+    """Update only pinned checkouts and the project-owned frontend link."""
+    source = repo / "comfy_extensions/H3_Director_Entry"
+    for required in (source / "__init__.py", source / "web/director-entry.js",
+                     repo / "workflows/comfy-ui/director-single-t2v.json"):
+        if not required.is_file():
+            raise FileNotFoundError(required)
+    target = comfy / "custom_nodes/H3_Director_Entry"
+    if target.is_symlink() and target.resolve() == source.resolve():
+        pass
+    elif target.exists() or target.is_symlink():
+        raise FileExistsError(f"Refusing to replace extension: {target}")
+    git_checkout(comfy, lock["comfyui"]["repo"], lock["comfyui"]["commit"])
+    for node in lock["custom_nodes"]:
+        git_checkout(comfy / "custom_nodes" / node["name"], node["repo"], node["commit"])
+    if not target.is_symlink():
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.symlink_to(source.resolve(), target_is_directory=True)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[1])
-    ap.add_argument("--check-only", action="store_true")
+    mode = ap.add_mutually_exclusive_group()
+    mode.add_argument("--check-only", action="store_true")
+    mode.add_argument("--code-only", action="store_true", help="only pinned git checkouts + frontend link; no packages/models")
     ap.add_argument("--install-deps", action="store_true", help="disabled: no verified CUDA wheel lock")
     ap.add_argument("--wheel-dir", type=Path, help="disabled together with --install-deps")
     args = ap.parse_args()
@@ -112,6 +134,10 @@ def main() -> int:
     requirements = repo / lock["python_stack"]["dependency_lock"]
     if args.install_deps or args.wheel_dir:
         raise SystemExit("Installation disabled: observed package versions are not a verified CUDA wheel lock")
+    comfy = cfg.runtime_root / "ComfyUI"
+    if args.code_only:
+        prepare_code(repo, comfy, lock)
+        return 0
     run([str(py), "-E", "-s", "-m", "pip", "check"])
     # Compare the recorded collection, not just pip's dependency consistency.
     run([str(py), "-E", "-s", "-c", "import importlib.metadata as m, pathlib, sys; "
@@ -125,11 +151,8 @@ def main() -> int:
                              (qwen, root / "qwen3-vl-32b-int8_convrot.safetensors")):
         if target == original.resolve() or not target.is_relative_to(root):
             raise SystemExit("Native model targets must be separate files inside H3_MODEL_ROOT")
-    comfy = cfg.runtime_root / "ComfyUI"
     if not args.check_only:
-        git_checkout(comfy, lock["comfyui"]["repo"], lock["comfyui"]["commit"])
-        for node in lock["custom_nodes"]:
-            git_checkout(comfy / "custom_nodes" / node["name"], node["repo"], node["commit"])
+        prepare_code(repo, comfy, lock)
         if not qwen.exists():
             normalize_qwen(root / "qwen3-vl-32b-int8_convrot.safetensors", qwen)
         if not fl2va.exists():

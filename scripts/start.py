@@ -106,7 +106,8 @@ def start_director(repo: Path, comfy: Path, wait_ready: int, extra: list[str]) -
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind((worker.host, port))
     cmd, env, log_path = worker_command(py, comfy, worker, repo, [
-        "--disable-all-custom-nodes", "--whitelist-custom-nodes", "ComfyUI_MiniMaxH3_Director", *extra,
+        "--disable-all-custom-nodes", "--whitelist-custom-nodes",
+        "ComfyUI_MiniMaxH3_Director", "H3_Director_Entry", *extra,
     ])
     pid_path = repo / "var/logs/comfyui-director.pid"
     def stop(_signum: int, _frame: Any) -> None:
@@ -135,7 +136,7 @@ def start_director(repo: Path, comfy: Path, wait_ready: int, extra: list[str]) -
                 time.sleep(1)
         else:
             raise TimeoutError(f"ComfyUI readiness timeout; see {log_path}")
-        print(f"Director ready: {worker.url}/  PID {proc.pid} GPU {gpu}", flush=True)
+        print(f"Director ready: {worker.url}/?director=1  (canvas: /)  PID {proc.pid} GPU {gpu}", flush=True)
         return proc.wait()
     except KeyboardInterrupt:
         return 130

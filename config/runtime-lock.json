@@ -11,7 +11,7 @@
     {
       "name": "ComfyUI_MiniMaxH3_Director",
       "repo": "https://github.com/AIMixer/ComfyUI_MiniMaxH3_Director.git",
-      "commit": "52f8fb7b8d8eb6bebf33ebb534827efa8f95484c",
+      "commit": "eb9d274f707012346f23d20a3372fbd4cbc7a9f8",
       "purpose": "Native single-GPU AV timeline"
     }
   ],

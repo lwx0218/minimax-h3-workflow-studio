@@ -7,7 +7,7 @@
 - Status: draft
 - Owner: project owner
 - Last updated: 2026-09-15
-- Source of truth: operations/planning/2026-09-14-h3-director-single-gpu.md
+- Source of truth: AGENTS.md; config/runtime-lock.json
 
 ## 已验证边界
 
@@ -51,7 +51,30 @@ OpenCV已收敛为单一 `opencv-python==5.0.0.93`，满足 `scenedetect==0.7.1`
 
 当前prepare检查包版本/模型路径并准备链接，`--check-only`不做重新推理，也不代表对任意旧副本完成数值校验。真实等价/数值证据只覆盖本轮指定源文件。
 
-默认只有一个ComfyUI child，未配置 `H3_DIRECTOR_HOST` 时监听 `127.0.0.1`；可显式指定一个私网/回环IPv4（不接受URL、主机名、IPv6、通配或公网地址）。监听、占端口检查、readiness URL与CLI提示共用该地址；本机readiness请求不走环境代理。LAN只用于可信网络，ComfyUI无鉴权；不绑定所有网卡、不修改防火墙或代理配置。只白名单加载Director，不加载旧RH/多卡插件。readiness检查必需节点注册，不仅HTTP。额外参数仅允许 `--cpu-vae`、`--lowvram`、`--disable-dynamic-vram`；本轮使用原生默认动态显存管理及内部tiled VAE，未改引擎。
+默认只有一个ComfyUI child，未配置 `H3_DIRECTOR_HOST` 时监听 `127.0.0.1`；可显式指定一个私网/回环IPv4（不接受URL、主机名、IPv6、通配或公网地址）。监听、占端口检查、readiness URL与CLI提示共用该地址；本机readiness请求不走环境代理。LAN只用于可信网络，ComfyUI无鉴权；不绑定所有网卡、不修改防火墙或代理配置。只白名单加载Director及项目自有 `H3_Director_Entry` 前端适配器，不加载旧RH/多卡插件。readiness检查必需节点注册，不仅HTTP。额外参数仅允许 `--cpu-vae`、`--lowvram`、`--disable-dynamic-vram`；本轮使用原生默认动态显存管理及内部tiled VAE，未改引擎。
+
+## Director 专用入口（本次增量，待部署后浏览器复核）
+
+当前目标 pin 为 `eb9d274f707012346f23d20a3372fbd4cbc7a9f8`。相对上述已实测 `52f8fb7`，上游仅增加默认关闭的 Refine VRAM 清理选项，无依赖变化；历史采样不能当作新 pin 已通过证明。
+
+- 同一 ComfyUI 服务的 `/?director=1` 直接进入原版 Director UI；`/` 保持普通画布。只接受这个开关，不接受路径、外部 URL 或混合 template/share 参数。
+- 等原生启动恢复完成后，若当前图 ID 是项目 T2V 图则保留其编辑，否则原生加载 `workflows/comfy-ui/director-single-t2v.json` 到**无指定文件名的新临时标签**，原标签由 ComfyUI 保留。不覆盖已保存文件，不自动提交任务。
+- 点击 **返回画布 / 原生保存**（或 Escape）回到同一 graph、同一编辑器 DOM，使用 ComfyUI **Save / Save As** 保存；不要把临时标签/浏览器草稿当备份。返回不是重新加载页面，编辑不因返回丢失。需要再进入时可访问 `/?director=1`，项目图恢复后继续编辑。
+- 原生 Focus Mode 仍显示节点图，不能满足此入口。适配器只把上游 `node._minimaxEditor.root` 临时放入非模态全屏容器；保留原事件、时间线、Run、预览、原生图序列化和执行，不复制 Director 源码或定义另一种 workflow。
+- 维护边界：固定前端 `1.49.6` 的 `extensionManager.spinner`、`loadGraphData` / 配置 hooks，以及 Director 私有 `root`、`flushTimelineSync`、`scheduleSettleRender`、`.mmx-host`。升级任一上游必须复核。画布被不透明非模态层遮住而非停止；上游附加到 body 的引用菜单仍可交互，不使用会使外部 DOM inert 的 `showModal()`。窄屏保留 960px 编辑区，横向滚动，不另做移动版。
+- 启动超时、资产请求错误、缺失编辑器会提示并保留普通画布；正常返回会归还 DOM；切换图时若原编辑器已销毁，仅移除入口，不复活旧 DOM 或渲染任务。入口不提供新的自动保存、鉴权或队列机制。
+
+已有隔离环境的**仅代码部署**（先检查队列为空并停止旧服务，父 session 在 review 后执行）：
+
+```bash
+python3 scripts/prepare_runtime.py --code-only
+python3 scripts/start.py
+# 浏览器 http://<configured-host>:<configured-port>/?director=1
+```
+
+`--code-only` 仅按锁更新 Git checkout 并链接项目 `comfy_extensions/H3_Director_Entry` 到 custom_nodes；不运行 pip、不改模型/转换/权重链接、不安装依赖。拒绝覆盖冲突的适配器目录，正常 prepare 同样建立该链接。`/h3-director/workflow` 只返回固定项目原生 JSON（ComfyUI 现有 aiohttp 栈），不暴露参数化文件接口。
+
+新增 Node.js 行为测试覆盖 opt-in、启动等待、临时图加载/恢复、同 DOM 返回、Escape、切换图与失败路径；它使用模拟 DOM，不证明真实 Director 布局/交互。部署后需检查普通 `/` 不变、专用入口隐藏画布、编辑/粘贴/时间线/上游弹窗、返回后 Save As 与重新打开保留编辑、现有其他标签不被覆盖，以及 `/queue` 无自动新增。真浏览器与服务重启由父 session 执行，本次 builder 未动 live runtime。
 
 ## 原生工作流与媒体
 
